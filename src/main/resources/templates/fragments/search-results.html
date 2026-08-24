@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+<div th:fragment="results">
+    <p th:if="${!#strings.isEmpty(query) and #lists.isEmpty(results)}" class="muted">No matches.</p>
+    <ul class="results" th:unless="${#lists.isEmpty(results)}">
+        <li th:each="r : ${results}">
+            <a th:href="@{/establishments/{id}(id=${r.licenseNumber()})}">
+                <span class="result-name" th:text="${r.name()}">Name</span>
+                <span class="result-address" th:text="${r.address()}">Address</span>
+                <span class="badge"
+                      th:classappend="${'badge-' + #strings.toLowerCase(r.status())}"
+                      th:text="${r.status()}">OPEN</span>
+                <span class="badge badge-result" th:if="${r.latestResult() != null}"
+                      th:text="${r.latestResult().label()}">Pass</span>
+            </a>
+        </li>
+    </ul>
+</div>
+</body>
+</html>

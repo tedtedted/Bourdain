@@ -1,0 +1,71 @@
+services:
+
+  postgres:
+    image: postgres:17
+    container_name: bourdain-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - bourdain-pgdata:/var/lib/postgresql/data
+    networks:
+      - internal
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    mem_limit: 512m
+    cpus: 1.0
+    logging:
+      driver: json-file
+      options:
+        max-size: "50m"
+        max-file: "5"
+
+  bourdain:
+    # Published by .github/workflows/publish.yml; ':edge' tracks main and
+    # immutable 'sha-*' tags allow pinning. `docker compose build` still
+    # builds locally under this name for development.
+    image: ghcr.io/tedtedted/bourdain:${BOURDAIN_VERSION:-edge}
+    build: .
+    container_name: bourdain
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      TZ: America/Chicago
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB}
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
+      SOCRATA_APP_TOKEN: ${SOCRATA_APP_TOKEN:-}
+    # Bind to loopback by default; point BOURDAIN_BIND at the host's Tailscale
+    # IP (or front it with `tailscale serve`) to reach it from the tailnet.
+    ports:
+      - "${BOURDAIN_BIND:-127.0.0.1}:${BOURDAIN_PORT:-8080}:8080"
+    networks:
+      - internal
+    healthcheck:
+      # The JRE image has no curl; a TCP probe on the app port is enough for
+      # compose ordering. Humans get the real check at /actuator/health.
+      test: ["CMD-SHELL", "bash -c ':> /dev/tcp/127.0.0.1/8080' || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 60s
+    mem_limit: 768m
+    cpus: 2.0
+    logging:
+      driver: json-file
+      options:
+        max-size: "50m"
+        max-file: "5"
+
+networks:
+  internal:
+
+volumes:
+  bourdain-pgdata:

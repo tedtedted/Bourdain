@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <th:block th:replace="~{fragments/page :: pageHead('Bourdain — not found')}"></th:block>
+</head>
+<body>
+<header th:replace="~{fragments/page :: header}"></header>
+<main>
+    <section class="hero">
+        <h1 th:text="${status ?: 'Error'}">404</h1>
+        <p class="muted">That page isn't on the menu. <a href="/">Back to search</a>.</p>
+    </section>
+</main>
+</body>
+</html>

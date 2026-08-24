@@ -1,0 +1,16 @@
+# Local development: just the database. Run the app with `./mvnw spring-boot:run`.
+services:
+  postgres:
+    image: postgres:17
+    container_name: bourdain-postgres-dev
+    environment:
+      POSTGRES_USER: bourdain
+      POSTGRES_PASSWORD: bourdain
+      POSTGRES_DB: bourdain
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - bourdain-pgdata-dev:/var/lib/postgresql/data
+
+volumes:
+  bourdain-pgdata-dev:

@@ -1,0 +1,54 @@
+spring:
+  application:
+    name: bourdain
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/bourdain}
+    username: ${SPRING_DATASOURCE_USERNAME:bourdain}
+    password: ${SPRING_DATASOURCE_PASSWORD:bourdain}
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+  threads:
+    virtual:
+      enabled: true
+  modulith:
+    events:
+      jdbc:
+        # Modulith owns the event_publication table (CREATE IF NOT EXISTS at
+        # startup) so its schema always matches the library version in use.
+        schema-initialization:
+          enabled: true
+      republish-outstanding-events-on-restart: true
+
+server:
+  port: 8080
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+
+bourdain:
+  socrata:
+    base-url: https://data.cityofchicago.org
+    # Optional; without a token Socrata may throttle. https://dev.socrata.com/docs/app-tokens
+    app-token: ${SOCRATA_APP_TOKEN:}
+    page-size: 5000
+    inspections-dataset: 4ijn-s7e5
+    licenses-dataset: uupf-x98q
+    # Food-related license types worth mirroring for relocation matching.
+    license-descriptions:
+      - Retail Food Establishment
+      - Tavern
+      - Consumption on Premises - Incidental Activity
+      - Wholesale Food Establishment
+      - Shared Kitchen User (Long Term)
+      - Mobile Food License
+  sync:
+    # The city refreshes the dataset daily; 06:30 Chicago time picks up the
+    # previous day's inspections.
+    cron: "0 30 6 * * *"
+    zone: America/Chicago
+    on-startup: true

@@ -1,0 +1,36 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.event.pull_request.number || github.sha }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Compile, Test, Verify
+    runs-on: ubuntu-latest
+
+    # No service containers here: tests that need Postgres provision their own
+    # Testcontainers (pinned to the prod version, postgres:17) via
+    # @ServiceConnection, so local `mvn verify` and CI exercise identical
+    # infrastructure.
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: Set up JDK 25 (Temurin)
+        uses: actions/setup-java@03ad4de0992f5dab5e18fcb136590ce7c4a0ac95 # v5
+        with:
+          distribution: temurin
+          java-version: "25"
+          cache: maven
+
+      - name: Verify
+        run: ./mvnw -B -ntp verify

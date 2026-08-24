@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <th:block th:fragment="pageHead(title)">
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <title th:text="${title}">Bourdain</title>
+        <link rel="stylesheet" th:href="@{/style.css}">
+        <script th:src="@{/vendor/htmx.min.js}" defer></script>
+    </th:block>
+</head>
+<body>
+<header th:fragment="header" class="site-header">
+    <a href="/" class="brand">bourdain</a>
+    <span class="tagline">Chicago food inspections, without the mystery</span>
+</header>
+
+<footer th:fragment="footer(lastSyncText, count)" class="site-footer">
+    <span th:if="${lastSyncText != null}">
+        Data synced <time th:text="${lastSyncText}">—</time>
+        · <span th:text="${#numbers.formatInteger(count, 0, 'COMMA')}">0</span> establishments
+    </span>
+    <span th:if="${lastSyncText == null}">No successful sync yet</span>
+    · Source: <a href="https://data.cityofchicago.org/Health-Human-Services/Food-Inspections/4ijn-s7e5">City of Chicago</a>
+</footer>
+</body>
+</html>

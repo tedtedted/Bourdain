@@ -1,5 +1,6 @@
 package com.tedredington.bourdain.civicdata.internal;
 
+import java.time.Duration;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
@@ -11,10 +12,13 @@ import com.tedredington.bourdain.civicdata.LicenseRecord;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.core.ParameterizedTypeReference;
+import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
+import org.springframework.web.client.RestClientException;
 import org.springframework.web.util.UriBuilder;
 
 /**
@@ -34,13 +38,31 @@ class SocrataCivicDataSource implements CivicDataSource {
     private final RestClient restClient;
     private final SocrataProperties properties;
 
+    @Autowired
     SocrataCivicDataSource(RestClient.Builder builder, SocrataProperties properties) {
-        RestClient.Builder configured = builder.baseUrl(properties.baseUrl());
+        this(configuredRestClient(builder, properties), properties);
+    }
+
+    SocrataCivicDataSource(RestClient restClient, SocrataProperties properties) {
+        this.restClient = restClient;
+        this.properties = properties;
+    }
+
+    private static RestClient configuredRestClient(RestClient.Builder builder, SocrataProperties properties) {
+        RestClient.Builder configured = builder
+                .baseUrl(properties.baseUrl())
+                .requestFactory(requestFactory(properties.connectTimeout(), properties.readTimeout()));
         if (properties.hasAppToken()) {
             configured = configured.defaultHeader("X-App-Token", properties.appToken());
         }
-        this.restClient = configured.build();
-        this.properties = properties;
+        return configured.build();
+    }
+
+    private static SimpleClientHttpRequestFactory requestFactory(Duration connectTimeout, Duration readTimeout) {
+        SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
+        factory.setConnectTimeout(connectTimeout);
+        factory.setReadTimeout(readTimeout);
+        return factory;
     }
 
     @Override
@@ -108,11 +130,15 @@ class SocrataCivicDataSource implements CivicDataSource {
 
     private List<Map<String, Object>> fetch(String dataset, List<String> conditions, int pageSize) {
         String where = String.join(" AND ", conditions);
-        List<Map<String, Object>> rows = restClient.get()
-                .uri(builder -> uri(builder, dataset, where, pageSize))
-                .retrieve()
-                .body(ROWS);
-        return rows == null ? List.of() : rows;
+        try {
+            List<Map<String, Object>> rows = restClient.get()
+                    .uri(builder -> uri(builder, dataset, where, pageSize))
+                    .retrieve()
+                    .body(ROWS);
+            return rows == null ? List.of() : rows;
+        } catch (RestClientException e) {
+            throw new CivicDataSourceException("Failed to fetch Socrata dataset " + dataset, e);
+        }
     }
 
     private java.net.URI uri(UriBuilder builder, String dataset, String where, int pageSize) {

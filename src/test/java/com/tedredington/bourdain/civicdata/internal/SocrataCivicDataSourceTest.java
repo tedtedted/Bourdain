@@ -1,5 +1,6 @@
 package com.tedredington.bourdain.civicdata.internal;
 
+import java.time.Duration;
 import java.time.LocalDate;
 import java.util.List;
 
@@ -11,9 +12,12 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.client.MockRestServiceServer;
 import org.springframework.test.web.client.RequestMatcher;
 import org.springframework.web.client.RestClient;
+import org.springframework.web.client.RestClientException;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.header;
+import static org.springframework.test.web.client.response.MockRestResponseCreators.withServerError;
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withSuccess;
 
 class SocrataCivicDataSourceTest {
@@ -25,9 +29,14 @@ class SocrataCivicDataSourceTest {
     void setUp() {
         RestClient.Builder builder = RestClient.builder();
         server = MockRestServiceServer.bindTo(builder).build();
-        source = new SocrataCivicDataSource(builder, new SocrataProperties(
-                "https://data.example.org", "test-token", 1000, "insp-ds", "lic-ds",
-                List.of("Retail Food Establishment", "Tavern")));
+        SocrataProperties properties = new SocrataProperties(
+                "https://data.example.org", "test-token", 1000, Duration.ofSeconds(5), Duration.ofSeconds(30),
+                "insp-ds", "lic-ds",
+                List.of("Retail Food Establishment", "Tavern"));
+        source = new SocrataCivicDataSource(builder
+                .baseUrl(properties.baseUrl())
+                .defaultHeader("X-App-Token", properties.appToken())
+                .build(), properties);
     }
 
     /** Asserts against the decoded query string, which carries the SoQL clauses. */
@@ -109,5 +118,16 @@ class SocrataCivicDataSourceTest {
         assertThat(page.records()).hasSize(1);
         assertThat(page.records().getFirst().licenseNumber()).isEqualTo(2252465L);
         assertThat(page.records().getFirst().licenseStartDate()).isEqualTo(LocalDate.of(2025, 2, 16));
+    }
+
+    @Test
+    void wrapsUpstreamErrorsWithDatasetContext() {
+        server.expect(query("/resource/insp-ds.json", "license_ > 0"))
+                .andRespond(withServerError());
+
+        assertThatThrownBy(() -> source.inspectionsPage(null, null, 1000))
+                .isInstanceOf(CivicDataSourceException.class)
+                .hasMessageContaining("insp-ds")
+                .hasCauseInstanceOf(RestClientException.class);
     }
 }

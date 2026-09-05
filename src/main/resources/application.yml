@@ -38,6 +38,8 @@ bourdain:
     page-size: 5000
     connect-timeout: 5s
     read-timeout: 30s
+    max-attempts: 3
+    retry-backoff: 2s
     inspections-dataset: 4ijn-s7e5
     licenses-dataset: uupf-x98q
     # Food-related license types worth mirroring for relocation matching.

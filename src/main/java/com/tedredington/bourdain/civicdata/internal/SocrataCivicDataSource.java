@@ -19,6 +19,8 @@ import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientException;
+import org.springframework.web.client.RestClientResponseException;
+import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.util.UriBuilder;
 
 /**
@@ -37,15 +39,21 @@ class SocrataCivicDataSource implements CivicDataSource {
 
     private final RestClient restClient;
     private final SocrataProperties properties;
+    private final Sleeper sleeper;
 
     @Autowired
     SocrataCivicDataSource(RestClient.Builder builder, SocrataProperties properties) {
-        this(configuredRestClient(builder, properties), properties);
+        this(configuredRestClient(builder, properties), properties, SocrataCivicDataSource::sleep);
     }
 
     SocrataCivicDataSource(RestClient restClient, SocrataProperties properties) {
+        this(restClient, properties, ignored -> {});
+    }
+
+    private SocrataCivicDataSource(RestClient restClient, SocrataProperties properties, Sleeper sleeper) {
         this.restClient = restClient;
         this.properties = properties;
+        this.sleeper = sleeper;
     }
 
     private static RestClient configuredRestClient(RestClient.Builder builder, SocrataProperties properties) {
@@ -130,15 +138,44 @@ class SocrataCivicDataSource implements CivicDataSource {
 
     private List<Map<String, Object>> fetch(String dataset, List<String> conditions, int pageSize) {
         String where = String.join(" AND ", conditions);
-        try {
-            List<Map<String, Object>> rows = restClient.get()
-                    .uri(builder -> uri(builder, dataset, where, pageSize))
-                    .retrieve()
-                    .body(ROWS);
-            return rows == null ? List.of() : rows;
-        } catch (RestClientException e) {
-            throw new CivicDataSourceException("Failed to fetch Socrata dataset " + dataset, e);
+        for (int attempt = 1; attempt <= properties.maxAttempts(); attempt++) {
+            try {
+                List<Map<String, Object>> rows = restClient.get()
+                        .uri(builder -> uri(builder, dataset, where, pageSize))
+                        .retrieve()
+                        .body(ROWS);
+                return rows == null ? List.of() : rows;
+            } catch (RestClientException e) {
+                if (attempt == properties.maxAttempts() || !isRetryable(e)) {
+                    throw new CivicDataSourceException("Failed to fetch Socrata dataset " + dataset, e);
+                }
+                log.warn("Socrata dataset {} fetch failed on attempt {}/{}; retrying",
+                        dataset, attempt, properties.maxAttempts(), e);
+                pause(dataset);
+            }
         }
+        return List.of();
+    }
+
+    private static boolean isRetryable(RestClientException e) {
+        if (e instanceof ResourceAccessException) {
+            return true;
+        }
+        return e instanceof RestClientResponseException response
+                && (response.getStatusCode().is5xxServerError() || response.getStatusCode().value() == 429);
+    }
+
+    private void pause(String dataset) {
+        try {
+            sleeper.sleep(properties.retryBackoff());
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new CivicDataSourceException("Interrupted while retrying Socrata dataset " + dataset, e);
+        }
+    }
+
+    private static void sleep(Duration duration) throws InterruptedException {
+        Thread.sleep(duration);
     }
 
     private java.net.URI uri(UriBuilder builder, String dataset, String where, int pageSize) {
@@ -252,5 +289,11 @@ class SocrataCivicDataSource implements CivicDataSource {
         } catch (Exception e) {
             return null;
         }
+    }
+
+    @FunctionalInterface
+    private interface Sleeper {
+
+        void sleep(Duration duration) throws InterruptedException;
     }
 }

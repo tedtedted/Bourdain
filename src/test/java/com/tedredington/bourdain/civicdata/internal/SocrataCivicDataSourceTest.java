@@ -31,6 +31,7 @@ class SocrataCivicDataSourceTest {
         server = MockRestServiceServer.bindTo(builder).build();
         SocrataProperties properties = new SocrataProperties(
                 "https://data.example.org", "test-token", 1000, Duration.ofSeconds(5), Duration.ofSeconds(30),
+                3, Duration.ZERO,
                 "insp-ds", "lic-ds",
                 List.of("Retail Food Establishment", "Tavern"));
         source = new SocrataCivicDataSource(builder
@@ -124,10 +125,34 @@ class SocrataCivicDataSourceTest {
     void wrapsUpstreamErrorsWithDatasetContext() {
         server.expect(query("/resource/insp-ds.json", "license_ > 0"))
                 .andRespond(withServerError());
+        server.expect(query("/resource/insp-ds.json", "license_ > 0"))
+                .andRespond(withServerError());
+        server.expect(query("/resource/insp-ds.json", "license_ > 0"))
+                .andRespond(withServerError());
 
         assertThatThrownBy(() -> source.inspectionsPage(null, null, 1000))
                 .isInstanceOf(CivicDataSourceException.class)
                 .hasMessageContaining("insp-ds")
                 .hasCauseInstanceOf(RestClientException.class);
+    }
+
+    @Test
+    void retriesTransientFailures() {
+        server.expect(query("/resource/insp-ds.json", "license_ > 0"))
+                .andRespond(withServerError());
+        server.expect(query("/resource/insp-ds.json", "license_ > 0"))
+                .andRespond(withSuccess("""
+                        [{
+                          ":id": "row-retry", ":updated_at": "2026-02-01T05:00:00.000",
+                          "inspection_id": "2597589", "dba_name": "THE DUKE OF PERTH",
+                          "license_": "18158", "address": "2913 N CLARK ST",
+                          "inspection_date": "2024-07-16T00:00:00.000"
+                        }]
+                        """, MediaType.APPLICATION_JSON));
+
+        var page = source.inspectionsPage(null, null, 1000);
+
+        assertThat(page.records()).hasSize(1);
+        assertThat(page.lastRowId()).isEqualTo("row-retry");
     }
 }

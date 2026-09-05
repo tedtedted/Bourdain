@@ -8,6 +8,7 @@ import java.util.List;
 import java.util.Map;
 
 import com.tedredington.bourdain.civicdata.CivicDataSyncCompleted;
+import com.tedredington.bourdain.civicdata.SyncSource;
 import com.tedredington.bourdain.establishment.EstablishmentView.Relocation;
 
 import org.slf4j.Logger;
@@ -19,7 +20,7 @@ import org.springframework.modulith.events.ApplicationModuleListener;
 import org.springframework.stereotype.Service;
 
 /**
- * The sync → matching handoff. Runs after a sync run's transaction commits
+ * The sync → matching handoff. Runs after the license sync transaction commits
  * (Modulith registry event, so a crash here is retried on restart) and
  * recomputes every establishment's status from scratch — the derivation is
  * cheap and idempotence beats bookkeeping about what changed.
@@ -39,7 +40,10 @@ class RelocationService {
 
     @ApplicationModuleListener
     void on(CivicDataSyncCompleted event) {
-        log.info("Deriving establishment statuses after {} sync", event.source());
+        if (event.source() != SyncSource.LICENSES) {
+            return;
+        }
+        log.info("Deriving establishment statuses after license sync");
         deriveStatuses();
     }
 

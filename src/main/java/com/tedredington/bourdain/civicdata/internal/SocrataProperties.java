@@ -8,6 +8,7 @@ import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.PositiveOrZero;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.validation.annotation.Validated;
@@ -20,6 +21,8 @@ public record SocrataProperties(
         @Min(100) @Max(50_000) int pageSize,
         @NotNull Duration connectTimeout,
         @NotNull Duration readTimeout,
+        @Min(1) int maxAttempts,
+        @NotNull @PositiveOrZero Duration retryBackoff,
         @NotBlank String inspectionsDataset,
         @NotBlank String licensesDataset,
         @NotEmpty List<String> licenseDescriptions) {

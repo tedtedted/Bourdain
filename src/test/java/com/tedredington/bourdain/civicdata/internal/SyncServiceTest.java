@@ -30,6 +30,7 @@ class SyncServiceTest {
                 syncRuns,
                 new SocrataProperties(
                         "https://data.example.org", null, 1000, Duration.ofSeconds(5), Duration.ofSeconds(30),
+                        3, Duration.ZERO,
                         "insp-ds", "lic-ds", List.of("Retail Food Establishment")),
                 new SyncProperties("0 30 6 * * *", "America/Chicago", true, Duration.ofMinutes(5)),
                 mock(ApplicationEventPublisher.class),

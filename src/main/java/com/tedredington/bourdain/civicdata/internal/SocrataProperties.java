@@ -2,13 +2,13 @@ package com.tedredington.bourdain.civicdata.internal;
 
 import java.time.Duration;
 import java.util.List;
+import java.util.Objects;
 
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.PositiveOrZero;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.validation.annotation.Validated;
@@ -22,10 +22,19 @@ public record SocrataProperties(
         @NotNull Duration connectTimeout,
         @NotNull Duration readTimeout,
         @Min(1) int maxAttempts,
-        @NotNull @PositiveOrZero Duration retryBackoff,
+        @NotNull Duration retryBackoff,
         @NotBlank String inspectionsDataset,
         @NotBlank String licensesDataset,
         @NotEmpty List<String> licenseDescriptions) {
+
+    public SocrataProperties {
+        Objects.requireNonNull(connectTimeout, "connectTimeout must not be null");
+        Objects.requireNonNull(readTimeout, "readTimeout must not be null");
+        Objects.requireNonNull(retryBackoff, "retryBackoff must not be null");
+        if (retryBackoff.isNegative()) {
+            throw new IllegalArgumentException("retryBackoff must not be negative");
+        }
+    }
 
     public boolean hasAppToken() {
         return appToken != null && !appToken.isBlank();

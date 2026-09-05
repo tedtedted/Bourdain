@@ -54,3 +54,6 @@ bourdain:
     cron: "0 30 6 * * *"
     zone: America/Chicago
     on-startup: true
+    # Re-read a small window because Socrata watermarks are not guaranteed to be
+    # unique; idempotent upserts make the overlap safe.
+    watermark-overlap: 5m

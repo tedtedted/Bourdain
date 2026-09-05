@@ -1,5 +1,6 @@
 package com.tedredington.bourdain.web;
 
+import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
@@ -62,6 +63,21 @@ class WebControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("HOT DOG HOUSE")))
                 .andExpect(content().string(containsString("No successful sync yet")));
+    }
+
+    @Test
+    void homeRendersLatestSyncFailure() throws Exception {
+        when(inspections.recentFailures(anyInt())).thenReturn(List.of());
+        when(establishments.count()).thenReturn(41_000L);
+        when(syncStatus.lastSuccessful(any())).thenReturn(Optional.of(
+                new SyncStatus.LastSync(Instant.parse("2026-09-05T12:00:00Z"), 10)));
+        when(syncStatus.lastAttempt(any())).thenReturn(Optional.of(
+                new SyncStatus.SyncAttempt(Instant.parse("2026-09-05T13:00:00Z"), "FAILED", "upstream timeout")));
+
+        mockMvc.perform(get("/"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("Last sync failed")))
+                .andExpect(content().string(containsString("2026-09-05 08:00")));
     }
 
     @Test

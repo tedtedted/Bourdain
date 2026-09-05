@@ -1,6 +1,10 @@
 package com.tedredington.bourdain.civicdata.internal;
 
+import java.time.Duration;
+import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import com.tedredington.bourdain.civicdata.CivicDataSyncCompleted;
@@ -25,20 +29,25 @@ import org.springframework.transaction.support.TransactionTemplate;
 public class SyncService {
 
     private static final Logger log = LoggerFactory.getLogger(SyncService.class);
+    private static final DateTimeFormatter SOCRATA_TIMESTAMP =
+            DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSS");
 
     private final CivicDataSource source;
     private final SyncRuns syncRuns;
-    private final SocrataProperties properties;
+    private final SocrataProperties socrataProperties;
+    private final SyncProperties syncProperties;
     private final ApplicationEventPublisher events;
     private final TransactionTemplate transaction;
     private final JdbcClient jdbc;
     private final AtomicBoolean running = new AtomicBoolean(false);
 
-    SyncService(CivicDataSource source, SyncRuns syncRuns, SocrataProperties properties,
+    SyncService(CivicDataSource source, SyncRuns syncRuns, SocrataProperties socrataProperties,
+                SyncProperties syncProperties,
                 ApplicationEventPublisher events, TransactionTemplate transaction, JdbcClient jdbc) {
         this.source = source;
         this.syncRuns = syncRuns;
-        this.properties = properties;
+        this.socrataProperties = socrataProperties;
+        this.syncProperties = syncProperties;
         this.events = events;
         this.transaction = transaction;
         this.jdbc = jdbc;
@@ -65,13 +74,14 @@ public class SyncService {
     void syncInspections() {
         long runId = syncRuns.start(SyncSource.INSPECTIONS);
         String watermark = syncRuns.lastWatermark(SyncSource.INSPECTIONS).orElse(null);
+        String queryWatermark = overlappedWatermark(watermark);
         try {
             String lastRowId = null;
             String maxUpdatedAt = watermark;
             int upserted = 0;
             int skipped = 0;
             while (true) {
-                var page = source.inspectionsPage(watermark, lastRowId, properties.pageSize());
+                var page = source.inspectionsPage(queryWatermark, lastRowId, socrataProperties.pageSize());
                 if (!page.records().isEmpty()) {
                     transaction.executeWithoutResult(tx ->
                             events.publishEvent(new InspectionBatchReceived(page.records())));
@@ -94,6 +104,21 @@ public class SyncService {
         }
     }
 
+    private String overlappedWatermark(String watermark) {
+        Duration overlap = syncProperties.watermarkOverlap();
+        if (watermark == null || overlap.isZero() || overlap.isNegative()) {
+            return watermark;
+        }
+        try {
+            return LocalDateTime.parse(watermark)
+                    .minus(overlap)
+                    .format(SOCRATA_TIMESTAMP);
+        } catch (DateTimeParseException e) {
+            log.warn("Could not apply inspection watermark overlap to {}", watermark, e);
+            return watermark;
+        }
+    }
+
     void syncLicenses() {
         long runId = syncRuns.start(SyncSource.LICENSES);
         try {
@@ -105,7 +130,7 @@ public class SyncService {
             // can disagree (e.g. a VM-hosted Postgres).
             OffsetDateTime runStart = jdbc.sql("select now()").query(OffsetDateTime.class).single();
             while (true) {
-                var page = source.licensesPage(lastRowId, properties.pageSize());
+                var page = source.licensesPage(lastRowId, socrataProperties.pageSize());
                 if (!page.records().isEmpty()) {
                     transaction.executeWithoutResult(tx ->
                             events.publishEvent(new LicenseBatchReceived(page.records())));

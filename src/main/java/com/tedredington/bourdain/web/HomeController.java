@@ -36,6 +36,10 @@ class HomeController {
         model.addAttribute("lastSyncText", syncStatus.lastSuccessful(SyncSource.INSPECTIONS)
                 .map(sync -> SYNC_TIME.format(sync.finishedAt()))
                 .orElse(null));
+        model.addAttribute("syncFailureText", syncStatus.lastAttempt(SyncSource.INSPECTIONS)
+                .filter(SyncStatus.SyncAttempt::failed)
+                .map(attempt -> SYNC_TIME.format(attempt.finishedAt()))
+                .orElse(null));
         return "index";
     }
 }

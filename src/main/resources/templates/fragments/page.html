@@ -18,17 +18,50 @@
     <span class="tagline">Chicago food inspections, without the mystery</span>
 </header>
 
+<th:block th:fragment="searchForm">
+    <!-- Targets "/" rather than /search: /search returns a bare fragment, so a
+         no-JS submit there would land on unstyled markup. htmx intercepts the
+         live path; this form is the fallback, and Enter yields a shareable URL. -->
+    <form class="search" action="/" method="get" role="search">
+        <label class="visually-hidden" for="q">Search Chicago food inspections</label>
+        <input type="search" id="q" name="q" th:value="${query}"
+               placeholder='Search a name, address, or ZIP like "60614"'
+               hx-get="/search" hx-trigger="input changed delay:300ms" hx-target="#search-results"
+               hx-indicator="#search-results"
+               hx-on::before-request="
+                   const r = htmx.find('#search-results');
+                   r.setAttribute('aria-busy', 'true');
+                   if (r.firstElementChild) r.firstElementChild.inert = true;"
+               hx-on::after-request="
+                   htmx.find('#search-results').setAttribute('aria-busy', 'false');"
+               autocomplete="off" autofocus>
+    </form>
+
+    <!-- inert goes on the stale children, never on this wrapper: an inert live
+         region would not announce the results that replace them. -->
+    <div id="search-results" aria-live="polite" aria-busy="false">
+        <th:block th:if="${results != null}">
+            <th:block th:replace="~{fragments/search-results :: results}"></th:block>
+        </th:block>
+    </div>
+</th:block>
+
 <footer th:fragment="footer(lastSyncText, syncFailureText, count)" class="site-footer">
-    <span th:if="${syncFailureText != null}" class="sync-warning">
-        Last sync failed <time th:text="${syncFailureText}">—</time>
+    <!-- The error page renders this with no sync model at all; say nothing
+         rather than claim a sync never succeeded. -->
+    <th:block th:if="${count != null}">
+        <span th:if="${syncFailureText != null}" class="sync-warning">
+            Last sync failed <time th:text="${syncFailureText}">—</time>
+            ·
+        </span>
+        <span th:if="${lastSyncText != null}">
+            Data synced <time th:text="${lastSyncText}">—</time>
+            · <span th:text="${#numbers.formatInteger(count, 0, 'COMMA')}">0</span> establishments
+        </span>
+        <span th:if="${lastSyncText == null}">No successful sync yet</span>
         ·
-    </span>
-    <span th:if="${lastSyncText != null}">
-        Data synced <time th:text="${lastSyncText}">—</time>
-        · <span th:text="${#numbers.formatInteger(count, 0, 'COMMA')}">0</span> establishments
-    </span>
-    <span th:if="${lastSyncText == null}">No successful sync yet</span>
-    · Source: <a href="https://data.cityofchicago.org/Health-Human-Services/Food-Inspections/4ijn-s7e5">City of Chicago</a>
+    </th:block>
+    Source: <a href="https://data.cityofchicago.org/Health-Human-Services/Food-Inspections/4ijn-s7e5">City of Chicago</a>
 </footer>
 </body>
 </html>

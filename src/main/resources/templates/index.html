@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org">
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
 <head>
     <th:block th:replace="~{fragments/page :: pageHead('Bourdain — Chicago food inspections')}"></th:block>
 </head>
@@ -10,15 +10,7 @@
     <section class="hero">
         <h1>Would you eat there?</h1>
         <p>Health inspection results for every licensed food business in Chicago.</p>
-        <input type="search" name="q" placeholder='Search a name, address, or ZIP like "60614"'
-               hx-get="/search" hx-trigger="input changed delay:300ms" hx-target="#search-results"
-               hx-indicator="#search-results"
-               hx-on::before-request="htmx.find('#search-results').setAttribute('aria-busy', 'true')"
-               hx-on::after-request="htmx.find('#search-results').setAttribute('aria-busy', 'false')"
-               autocomplete="off" autofocus>
-        <!-- aria-live is the accessible twin of the visual dim below: the
-             results announce themselves when they land. -->
-        <div id="search-results" aria-live="polite" aria-busy="false"></div>
+        <th:block th:replace="~{fragments/page :: searchForm}"></th:block>
     </section>
 
     <section th:unless="${#lists.isEmpty(recentFailures)}">

@@ -9,11 +9,17 @@ class AddressesTest {
     @Test
     void suiteSuffixesAreTheSameLocation() {
         assertThat(Addresses.sameLocation("2913 N CLARK ST ", "2913 N CLARK ST 1ST")).isTrue();
+        assertThat(Addresses.sameLocation("2913 N CLARK ST", "2913 N CLARK ST SUITE 200")).isTrue();
     }
 
     @Test
     void differentHouseNumbersAreDifferentLocations() {
         assertThat(Addresses.sameLocation("2913 N CLARK ST", "2827 N BROADWAY 1")).isFalse();
+    }
+
+    @Test
+    void sameHouseNumberOnDifferentStreetsIsADifferentLocation() {
+        assertThat(Addresses.sameLocation("100 W MADISON ST", "100 E MADISON ST")).isFalse();
     }
 
     @Test

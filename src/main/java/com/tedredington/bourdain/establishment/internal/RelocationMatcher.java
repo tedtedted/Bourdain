@@ -45,7 +45,7 @@ public final class RelocationMatcher {
                 .toList();
 
         long distinctLocations = plausible.stream()
-                .map(c -> Addresses.houseNumber(c.address()))
+                .map(c -> Addresses.locationKey(c.address()))
                 .distinct()
                 .count();
         if (distinctLocations != 1) {

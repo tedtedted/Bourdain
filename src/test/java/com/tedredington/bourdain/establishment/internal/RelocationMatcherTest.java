@@ -40,6 +40,15 @@ class RelocationMatcherTest {
     }
 
     @Test
+    void sameHouseNumberOnDifferentStreetsCountsAsMultipleLocations() {
+        List<Candidate> candidates = List.of(
+                new Candidate(1, "100 W MADISON ST", LocalDate.of(2025, 1, 1), LocalDate.of(2027, 1, 1)),
+                new Candidate(2, "100 E MADISON ST", LocalDate.of(2025, 1, 1), LocalDate.of(2027, 1, 1)));
+
+        assertThat(RelocationMatcher.match(dukeOfPerth, candidates, TODAY)).isEmpty();
+    }
+
+    @Test
     void licensesAtTheSameAddressAreNotRelocations() {
         List<Candidate> candidates = List.of(
                 new Candidate(999, "2913 N CLARK ST 1ST", LocalDate.of(2025, 5, 16), LocalDate.of(2027, 5, 15)));

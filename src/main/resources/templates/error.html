@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org">
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
 <head>
     <th:block th:replace="~{fragments/page :: pageHead('Bourdain — not found')}"></th:block>
 </head>
@@ -8,8 +8,11 @@
 <main>
     <section class="hero">
         <h1 th:text="${status ?: 'Error'}">404</h1>
-        <p class="muted">That page isn't on the menu. <a href="/">Back to search</a>.</p>
+        <p class="muted">That page isn't on the menu. License numbers change hands,
+            so an old link can stop resolving even when the business is still open.</p>
+        <th:block th:replace="~{fragments/page :: searchForm}"></th:block>
     </section>
 </main>
+<footer th:replace="~{fragments/page :: footer(${lastSyncText}, ${syncFailureText}, ${establishmentCount})}"></footer>
 </body>
 </html>

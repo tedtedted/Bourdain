@@ -21,6 +21,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.not;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
@@ -78,6 +79,48 @@ class WebControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("Last sync failed")))
                 .andExpect(content().string(containsString("2026-09-05 08:00")));
+    }
+
+    @Test
+    void homeRendersResultsServerSideWhenQueryIsPresent() throws Exception {
+        when(inspections.recentFailures(anyInt())).thenReturn(List.of());
+        when(establishments.count()).thenReturn(41_000L);
+        when(syncStatus.lastSuccessful(any())).thenReturn(Optional.empty());
+        when(establishments.search(eq("duke"), anyInt())).thenReturn(List.of(relocatedDuke()));
+
+        // The no-JavaScript path: a plain form submit must render results in
+        // the page, not leave the user on a bare fragment.
+        mockMvc.perform(get("/").param("q", "duke"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("THE DUKE OF PERTH")))
+                .andExpect(content().string(containsString("RELOCATED")))
+                // ...on the full page, not as a bare fragment.
+                .andExpect(content().string(containsString("Would you eat there?")));
+    }
+
+    @Test
+    void homeWithoutQueryRendersNoResults() throws Exception {
+        when(inspections.recentFailures(anyInt())).thenReturn(List.of());
+        when(establishments.count()).thenReturn(41_000L);
+        when(syncStatus.lastSuccessful(any())).thenReturn(Optional.empty());
+
+        mockMvc.perform(get("/"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("id=\"search-results\"")))
+                .andExpect(content().string(not(containsString("class=\"results\""))));
+    }
+
+    @Test
+    void searchInputIsLabelledAndInsideAForm() throws Exception {
+        when(inspections.recentFailures(anyInt())).thenReturn(List.of());
+        when(establishments.count()).thenReturn(41_000L);
+        when(syncStatus.lastSuccessful(any())).thenReturn(Optional.empty());
+
+        mockMvc.perform(get("/"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("<form class=\"search\" action=\"/\" method=\"get\"")))
+                .andExpect(content().string(containsString("for=\"q\"")))
+                .andExpect(content().string(containsString("id=\"q\"")));
     }
 
     @Test

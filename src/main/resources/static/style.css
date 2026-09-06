@@ -304,7 +304,10 @@ main {
 }
 
 #search-results.htmx-request {
-    opacity: 0.45;
+    /* 0.45 composited result text down to 2.06:1. The stale children are
+       marked inert, so this is an inactive component — but it should still
+       be readable while it is on screen, which it is on every keystroke. */
+    opacity: 0.6;
     /* Also stops a click landing on a result that is about to be replaced. */
     pointer-events: none;
 }

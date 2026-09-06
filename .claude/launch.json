@@ -4,7 +4,19 @@
     {
       "name": "bourdain",
       "runtimeExecutable": "java",
-      "runtimeArgs": ["-jar", "target/bourdain-0.1.0.jar"],
+      "runtimeArgs": [
+        "-jar",
+        "target/bourdain-0.1.0.jar"
+      ],
+      "port": 8080
+    },
+    {
+      "name": "bourdain-dev",
+      "runtimeExecutable": "./mvnw",
+      "runtimeArgs": [
+        "spring-boot:run",
+        "-Dspring-boot.run.jvmArguments=-Dbourdain.sync.on-startup=false -Dspring.thymeleaf.cache=false -Dspring.web.resources.cache.period=0"
+      ],
       "port": 8080
     }
   ]

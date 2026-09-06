@@ -1,0 +1,7 @@
+{
+  "files": ["src/main/resources/templates/*.html"],
+  "exclude": ["src/main/resources/templates/fragments/**"],
+  "insertBefore": "</body>",
+  "commentSyntax": "html",
+  "cspChecked": true
+}

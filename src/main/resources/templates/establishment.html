@@ -1,65 +1,99 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org">
+<html lang="en" xmlns:th="http://www.thymeleaf.org" th:with="e=${page.establishment()}">
 <head>
     <th:block th:replace="~{fragments/page :: pageHead(${e.name()} + ' — Bourdain')}"></th:block>
 </head>
 <body>
+<a class="skip-link" href="#history">Skip to inspection history</a>
 <header th:replace="~{fragments/page :: header}"></header>
 
 <main>
-    <section class="establishment-header">
-        <h1 th:text="${e.name()}">Name</h1>
-        <p class="muted" th:if="${e.akaName() != null and !#strings.equalsIgnoreCase(e.akaName(), e.name())}"
-           th:text="'a.k.a. ' + ${e.akaName()}">aka</p>
-        <p>
-            <span th:text="${e.address()}">Address</span><span th:if="${e.zip() != null}" th:text="', ' + ${e.zip()}"></span>
-        </p>
-        <p>
-            <span class="badge" th:classappend="${'badge-' + #strings.toLowerCase(e.status())}"
-                  th:text="${e.status()}">OPEN</span>
-            <span class="badge" th:if="${e.category() != null}" th:text="${e.category().label()}">Restaurant</span>
-            <span class="badge" th:if="${e.risk() != null}" th:text="${e.risk().label()}">Risk</span>
-            <span class="muted">License #<span th:text="${e.licenseNumber()}">0</span></span>
+    <article class="entry">
+        <p class="backlink"><a href="/">← Search</a></p>
+
+        <h1 class="entry-name" th:text="${e.name()}">Name</h1>
+
+        <p class="entry-aka" th:if="${e.akaName() != null and !#strings.equalsIgnoreCase(e.akaName(), e.name())}"
+           th:text="'Also licensed as ' + ${e.akaName()}">aka</p>
+
+        <p class="entry-address">
+            <span th:text="${e.address()}">Address</span><th:block
+                th:if="${e.zip() != null}">, <span th:text="${e.zip()}">60657</span></th:block>
         </p>
 
-        <div class="notice" th:if="${e.relocation() != null}">
-            <strong>Moved, not closed.</strong>
-            This name holds an active license at
-            <span th:text="${e.relocation().address()}">address</span>
-            <span th:if="${e.relocation().since() != null}">
-                (licensed since <time th:text="${e.relocation().since()}">date</time>)</span>.
-            <a th:href="@{/establishments/{id}(id=${e.relocation().licenseNumber()})}">Inspections at the new location</a>
-            appear once the city inspects it.
+        <div class="standing" th:classappend="'standing--' + ${page.standing().tone()}">
+            <p class="standing-claim" th:text="${page.standing().claim()}">Open.</p>
+            <p class="standing-detail">
+                <span th:text="${page.standing().evidence()}">Evidence.</span>
+                <th:block th:if="${e.relocation() != null}">
+                    <a th:href="@{/establishments/{id}(id=${e.relocation().licenseNumber()})}">See
+                        the record at the new address</a> — inspections show up there once the
+                    city visits it.
+                </th:block>
+            </p>
         </div>
-    </section>
 
-    <section>
+        <dl class="record">
+            <div>
+                <dt>License</dt>
+                <dd class="tabular" th:text="${e.licenseNumber()}">0</dd>
+            </div>
+            <div th:if="${e.facilityTypeRaw() != null}">
+                <dt>Filed as</dt>
+                <dd th:text="${e.facilityTypeRaw()}">Restaurant</dd>
+            </div>
+            <div th:if="${page.cadence() != null}">
+                <dt>Inspection cadence</dt>
+                <dd th:text="${page.cadence()}">Inspected most often</dd>
+            </div>
+            <div>
+                <dt>Last inspected</dt>
+                <dd th:text="${page.lastInspected()}">Never</dd>
+            </div>
+        </dl>
+
+        <p class="record-note" th:if="${page.cadenceNote() != null}"
+           th:text="${page.cadenceNote()}">note</p>
+    </article>
+
+    <section class="history" id="history">
         <h2>Inspection history</h2>
-        <p th:if="${#lists.isEmpty(history)}" class="muted">
-            No inspections on record for this license yet.
-        </p>
-        <ol class="timeline">
-            <li th:each="i : ${history}">
-                <div class="timeline-row">
-                    <time th:text="${i.inspectedOn()}">date</time>
-                    <span class="badge"
-                          th:classappend="${i.result().passing()} ? 'badge-pass' : (${i.result().name() == 'FAIL'} ? 'badge-fail' : 'badge-neutral')"
-                          th:text="${i.result().label()}">Pass</span>
-                    <span class="muted" th:text="${i.type().label()}">Canvass</span>
+
+        <p class="history-summary" th:if="${page.historySummary() != null}"
+           th:text="${page.historySummary()}">0 inspections on record.</p>
+
+        <!-- The standing above already explains why a license can have no
+             inspections; don't say it twice. -->
+        <p class="empty" th:if="${page.historySummary() == null}">Nothing on record yet.</p>
+
+        <ol class="ledger" th:unless="${#lists.isEmpty(page.rows())}">
+            <li th:each="r : ${page.rows()}">
+                <div class="ledger-row">
+                    <time class="ledger-date" th:datetime="${r.detail().inspectedOn()}"
+                          th:text="${r.date()}">date</time>
+                    <span class="badge ledger-result" th:classappend="${r.resultClass()}"
+                          th:text="${r.detail().result().label()}">Pass</span>
+                    <span class="ledger-type" th:text="${r.detail().type().label()}">Routine canvass</span>
+
+                    <details class="violations-toggle" th:unless="${#lists.isEmpty(r.detail().violations())}">
+                        <summary th:text="${#lists.size(r.detail().violations())} + (${#lists.size(r.detail().violations())} == 1 ? ' violation' : ' violations')">
+                            violations
+                        </summary>
+                        <ul class="violations">
+                            <li th:each="v : ${r.detail().violations()}">
+                                <span class="violation-code" th:text="'Code ' + ${v.code()}">Code 0</span>
+                                <p class="violation-desc" th:text="${v.description()}">description</p>
+                                <p class="violation-comment" th:if="${v.comment() != null}"
+                                   th:text="${v.comment()}">comment</p>
+                            </li>
+                        </ul>
+                    </details>
                 </div>
-                <details th:unless="${#lists.isEmpty(i.violations())}">
-                    <summary th:text="${#lists.size(i.violations())} + ' violations'">violations</summary>
-                    <ul class="violations">
-                        <li th:each="v : ${i.violations()}">
-                            <strong th:text="'#' + ${v.code()}">#</strong>
-                            <span th:text="${v.description()}">description</span>
-                            <p class="muted" th:if="${v.comment() != null}" th:text="${v.comment()}">comment</p>
-                        </li>
-                    </ul>
-                </details>
             </li>
         </ol>
     </section>
 </main>
+
+<footer th:replace="~{fragments/page :: footer(${lastSyncText}, ${syncFailureText}, ${establishmentCount})}"></footer>
 </body>
 </html>

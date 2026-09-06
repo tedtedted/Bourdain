@@ -289,6 +289,30 @@ main {
 .hero input[type="search"]:hover { border-color: var(--muted); }
 .hero input[type="search"]:focus-visible { border-color: var(--rose); outline-offset: 1px; }
 
+/* Search feedback. The query fires on every keystroke after a 300ms debounce,
+   so this appears constantly — it has to stay calm. Existing results dim and
+   go inert while the next query is in flight, then the incoming list settles
+   in. Nothing appears or disappears, so nothing jumps. */
+#search-results {
+    transition: opacity var(--dur-mid) var(--ease-out-quart);
+}
+
+#search-results.htmx-request {
+    opacity: 0.45;
+    /* Also stops a click landing on a result that is about to be replaced. */
+    pointer-events: none;
+}
+
+#search-results .results,
+#search-results > .muted {
+    transition: opacity var(--dur-mid) var(--ease-out-quart);
+}
+
+#search-results.htmx-settling .results,
+#search-results.htmx-settling > .muted {
+    opacity: 0;
+}
+
 .results { list-style: none; padding: 0; margin: var(--space-sm) 0 0; max-width: 34rem; }
 
 .results a {
@@ -302,6 +326,7 @@ main {
     color: var(--ink);
 }
 
+.results a { transition: background-color var(--dur-fast) var(--ease-out-quart); }
 .results a:hover { background: var(--surface); }
 .results a:hover .result-name { color: var(--rose); }
 .result-name { font-weight: 500; }

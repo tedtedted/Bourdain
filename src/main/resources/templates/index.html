@@ -12,8 +12,13 @@
         <p>Health inspection results for every licensed food business in Chicago.</p>
         <input type="search" name="q" placeholder='Search a name, address, or ZIP like "60614"'
                hx-get="/search" hx-trigger="input changed delay:300ms" hx-target="#search-results"
+               hx-indicator="#search-results"
+               hx-on::before-request="htmx.find('#search-results').setAttribute('aria-busy', 'true')"
+               hx-on::after-request="htmx.find('#search-results').setAttribute('aria-busy', 'false')"
                autocomplete="off" autofocus>
-        <div id="search-results"></div>
+        <!-- aria-live is the accessible twin of the visual dim below: the
+             results announce themselves when they land. -->
+        <div id="search-results" aria-live="polite" aria-busy="false"></div>
     </section>
 
     <section th:unless="${#lists.isEmpty(recentFailures)}">

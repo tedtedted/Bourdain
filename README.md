@@ -25,7 +25,7 @@ Spring Modulith application modules, verified by `ModularityTests`:
 
 Fetched pages flow to the domain modules as in-transaction events; a persisted
 `CivicDataSyncCompleted` event (Modulith JDBC registry) hands off to status
-derivation and relocation matching after each run.
+derivation and relocation matching after active licenses are refreshed.
 
 ## Run locally
 

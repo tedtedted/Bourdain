@@ -6,8 +6,8 @@
  * {@link com.tedredington.bourdain.civicdata.InspectionBatchReceived} /
  * {@link com.tedredington.bourdain.civicdata.LicenseBatchReceived} events, and a
  * persisted {@link com.tedredington.bourdain.civicdata.CivicDataSyncCompleted}
- * event (JDBC event publication registry) triggers downstream derivation once a
- * run finishes. This module depends on no other module.
+ * event (JDBC event publication registry) lets downstream modules derive state
+ * after the relevant source finishes. This module depends on no other module.
  */
 @org.springframework.modulith.ApplicationModule(displayName = "Civic Data Sync")
 package com.tedredington.bourdain.civicdata;

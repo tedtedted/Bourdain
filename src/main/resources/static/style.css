@@ -362,7 +362,16 @@ main {
     text-wrap: balance;
 }
 
-.standing-detail { margin-top: var(--space-2xs); color: var(--muted); }
+/* Not fine print. The claim above is incomplete without it — "Open." is only
+   true because of what this sentence says — so it carries full ink, not the
+   muted tone used for genuinely secondary text. A reader who skims the claim
+   and stops should not be able to miss the qualifier. */
+.standing-detail {
+    margin-top: var(--space-2xs);
+    color: var(--ink);
+    text-wrap: pretty;
+}
+
 .standing-detail a { font-weight: 500; }
 
 /* Relocation is the whole reason this project exists; it gets the emphasis. */
@@ -410,8 +419,11 @@ main {
 
 .history { margin-top: var(--space-2xl); }
 
+/* A section label, not a statement. Sized below the standing claim so the
+   page's second-most-important line isn't tied with a piece of furniture;
+   the 4rem of space above it is what marks the section, not the size. */
 .history h2 {
-    font-size: var(--text-xl);
+    font-size: var(--text-lg);
     font-weight: 500;
 }
 
@@ -562,7 +574,9 @@ main {
 /* ---------- Responsive ---------- */
 
 @media (max-width: 44rem) {
-    :root { --text-2xl: 1.875rem; --text-xl: 1.5rem; }
+    /* --text-lg comes down with the others, or the standing claim and the
+       section heading land 2px apart and the hierarchy collapses here. */
+    :root { --text-2xl: 1.875rem; --text-xl: 1.5rem; --text-lg: 1.25rem; }
 
     .ledger-row {
         grid-template-columns: 1fr auto;

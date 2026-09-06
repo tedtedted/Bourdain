@@ -90,4 +90,20 @@ class SyncRuns implements SyncStatus {
                 .query((rs, i) -> new LastSync(rs.getTimestamp("finished_at").toInstant(), rs.getInt("rows_upserted")))
                 .optional();
     }
+
+    @Override
+    public Optional<SyncAttempt> lastAttempt(SyncSource source) {
+        return jdbc.sql("""
+                        select coalesce(finished_at, started_at) as at, status, message
+                        from sync_run
+                        where source = :source
+                        order by started_at desc limit 1
+                        """)
+                .param("source", source.name())
+                .query((rs, i) -> new SyncAttempt(
+                        rs.getTimestamp("at").toInstant(),
+                        rs.getString("status"),
+                        rs.getString("message")))
+                .optional();
+    }
 }

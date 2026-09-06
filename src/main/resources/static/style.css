@@ -137,3 +137,4 @@ summary { cursor: pointer; color: var(--muted); }
     padding: 1rem;
 }
 .site-footer a { color: var(--muted); }
+.sync-warning { color: var(--fail); }

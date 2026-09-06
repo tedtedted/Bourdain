@@ -15,7 +15,11 @@
     <span class="tagline">Chicago food inspections, without the mystery</span>
 </header>
 
-<footer th:fragment="footer(lastSyncText, count)" class="site-footer">
+<footer th:fragment="footer(lastSyncText, syncFailureText, count)" class="site-footer">
+    <span th:if="${syncFailureText != null}" class="sync-warning">
+        Last sync failed <time th:text="${syncFailureText}">—</time>
+        ·
+    </span>
     <span th:if="${lastSyncText != null}">
         Data synced <time th:text="${lastSyncText}">—</time>
         · <span th:text="${#numbers.formatInteger(count, 0, 'COMMA')}">0</span> establishments

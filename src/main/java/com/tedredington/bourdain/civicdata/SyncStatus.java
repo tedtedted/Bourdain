@@ -8,6 +8,15 @@ public interface SyncStatus {
 
     Optional<LastSync> lastSuccessful(SyncSource source);
 
+    Optional<SyncAttempt> lastAttempt(SyncSource source);
+
     record LastSync(Instant finishedAt, int rowsUpserted) {
+    }
+
+    record SyncAttempt(Instant finishedAt, String status, String message) {
+
+        public boolean failed() {
+            return "FAILED".equals(status);
+        }
     }
 }

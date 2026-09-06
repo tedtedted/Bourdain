@@ -66,31 +66,48 @@
              inspections; don't say it twice. -->
         <p class="empty" th:if="${page.historySummary() == null}">Nothing on record yet.</p>
 
-        <ol class="ledger" th:unless="${#lists.isEmpty(page.rows())}">
-            <li th:each="r : ${page.rows()}">
-                <div class="ledger-row">
-                    <time class="ledger-date" th:datetime="${r.detail().inspectedOn()}"
-                          th:text="${r.date()}">date</time>
-                    <span class="badge ledger-result" th:classappend="${r.resultClass()}"
-                          th:text="${r.detail().result().label()}">Pass</span>
-                    <span class="ledger-type" th:text="${r.detail().type().label()}">Routine canvass</span>
-
-                    <details class="violations-toggle" th:unless="${#lists.isEmpty(r.detail().violations())}">
-                        <summary th:text="${#lists.size(r.detail().violations())} + (${#lists.size(r.detail().violations())} == 1 ? ' violation' : ' violations')">
-                            violations
-                        </summary>
-                        <ul class="violations">
-                            <li th:each="v : ${r.detail().violations()}">
-                                <span class="violation-code" th:text="'Code ' + ${v.code()}">Code 0</span>
-                                <p class="violation-desc" th:text="${v.description()}">description</p>
-                                <p class="violation-comment" th:if="${v.comment() != null}"
-                                   th:text="${v.comment()}">comment</p>
-                            </li>
-                        </ul>
-                    </details>
-                </div>
-            </li>
-        </ol>
+        <table class="ledger" th:unless="${#lists.isEmpty(page.rows())}">
+            <caption class="visually-hidden">Inspections for this license, newest first.</caption>
+            <thead>
+                <tr>
+                    <th scope="col">Date</th>
+                    <th scope="col">Result</th>
+                    <th scope="col">Inspection</th>
+                </tr>
+            </thead>
+            <!-- One tbody per inspection, so a violations row stays grouped
+                 with the row it belongs to. -->
+            <tbody th:each="r : ${page.rows()}">
+                <tr class="ledger-row">
+                    <th scope="row" class="ledger-date">
+                        <time th:datetime="${r.detail().inspectedOn()}" th:text="${r.date()}">date</time>
+                    </th>
+                    <td class="ledger-result">
+                        <span class="badge" th:classappend="${r.resultClass()}"
+                              th:text="${r.detail().result().label()}">Pass</span>
+                    </td>
+                    <td class="ledger-type" th:text="${r.detail().type().label()}">Routine canvass</td>
+                </tr>
+                <tr class="ledger-violations" th:unless="${#lists.isEmpty(r.detail().violations())}">
+                    <td colspan="3">
+                        <details class="violations-toggle">
+                            <summary>
+                                <span th:text="${#lists.size(r.detail().violations())} + (${#lists.size(r.detail().violations())} == 1 ? ' violation' : ' violations')">violations</span>
+                                <span class="visually-hidden" th:text="'on ' + ${r.date()}"></span>
+                            </summary>
+                            <ul class="violations">
+                                <li th:each="v : ${r.detail().violations()}">
+                                    <span class="violation-code" th:text="'Code ' + ${v.code()}">Code 0</span>
+                                    <p class="violation-desc" th:text="${v.description()}">description</p>
+                                    <p class="violation-comment" th:if="${v.comment() != null}"
+                                       th:text="${v.comment()}">comment</p>
+                                </li>
+                            </ul>
+                        </details>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
     </section>
 </main>
 

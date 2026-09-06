@@ -51,6 +51,9 @@
 
     /* Fixed rem scale, ratio ~1.2. Product register: no fluid body type. */
     --text-xs: 0.8125rem;
+    /* Column headers and status chips: dense table furniture, not prose.
+       Held at 13px on mobile while --text-xs rises to the 14px prose floor. */
+    --text-dense: 0.8125rem;
     --text-sm: 0.9375rem;
     --text-base: 1.0625rem;
     --text-lg: 1.375rem;
@@ -79,7 +82,6 @@
     --dur-slow: 280ms;
 
     /* Semantic z-index scale. */
-    --z-sticky: 100;
     --z-tooltip: 400;
 
     /* Status vocabulary — owned by the data, identical in both themes.
@@ -96,13 +98,16 @@
 :root {
     --ground: oklch(1 0 0);
     --surface: oklch(0.970 0.006 345);
-    --sunken: oklch(0.945 0.008 345);
+    /* One step past --surface; used for pressed states. */
+    --sunken: oklch(0.938 0.010 345);
     --ink: oklch(0.19 0.014 345);
     --muted: oklch(0.47 0.016 345);
     --rose: oklch(0.50 0.17 345);
     --rose-hover: oklch(0.40 0.15 345);
     --rule: oklch(0.895 0.010 345);
     --rule-strong: oklch(0.80 0.012 345);
+    /* The relocated status as *text* on the page ground, rather than as a fill. */
+    --status-relocated-text: var(--status-relocated);
     --body-leading: 1.6;
     --body-tracking: 0;
 }
@@ -111,13 +116,14 @@
     :root {
         --ground: oklch(0.145 0 0);
         --surface: oklch(0.198 0.006 345);
-        --sunken: oklch(0.115 0.004 345);
+        --sunken: oklch(0.245 0.008 345);
         --ink: oklch(0.935 0.008 345);
         --muted: oklch(0.715 0.014 345);
         --rose: oklch(0.775 0.135 345);
         --rose-hover: oklch(0.855 0.085 345);
         --rule: oklch(0.285 0.010 345);
         --rule-strong: oklch(0.40 0.012 345);
+        --status-relocated-text: oklch(0.80 0.10 235);
         /* Light-on-dark reads heavier and tighter. Plex Sans's weight axis
            stops at 400, so compensate with leading and tracking instead. */
         --body-leading: 1.66;
@@ -254,7 +260,7 @@ main {
     border-radius: var(--radius-sm);
     background: var(--status-neutral);
     color: var(--status-ink);
-    font-size: var(--text-xs);
+    font-size: var(--text-dense);
     font-weight: 500;
     line-height: 1.4;
     letter-spacing: 0.005em;
@@ -328,6 +334,7 @@ main {
 
 .results a { transition: background-color var(--dur-fast) var(--ease-out-quart); }
 .results a:hover { background: var(--surface); }
+.results a:active { background: var(--sunken); }
 .results a:hover .result-name { color: var(--rose); }
 .result-name { font-weight: 500; }
 .result-address { color: var(--muted); font-size: var(--text-sm); }
@@ -354,6 +361,7 @@ main {
 }
 
 .card:hover { border-color: var(--rule-strong); }
+.card:active { background: var(--sunken); }
 .card:hover .card-title { color: var(--rose); }
 .card-title { display: block; font-family: var(--font-display); font-size: var(--text-lg); font-weight: 500; }
 .card-sub { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--space-2xs); margin: var(--space-2xs) 0; font-size: var(--text-sm); color: var(--muted); }
@@ -362,9 +370,14 @@ main {
 /* ---------- Establishment: the entry ---------- */
 
 .backlink {
-    display: inline-block;
     margin-bottom: var(--space-md);
     font-size: var(--text-sm);
+}
+
+/* Was 64x20 — under the 24x24 minimum in WCAG 2.2 SC 2.5.8. */
+.backlink a {
+    display: inline-block;
+    padding: var(--space-3xs) 0;
 }
 
 .entry { max-width: var(--measure); }
@@ -413,11 +426,7 @@ main {
 .standing-detail a { font-weight: 500; }
 
 /* Relocation is the whole reason this project exists; it gets the emphasis. */
-.standing--relocated .standing-claim { color: var(--status-relocated); }
-
-@media (prefers-color-scheme: dark) {
-    .standing--relocated .standing-claim { color: oklch(0.80 0.10 235); }
-}
+.standing--relocated .standing-claim { color: var(--status-relocated-text); }
 
 /* The record strip — supporting facts, not badges. */
 
@@ -474,6 +483,9 @@ main {
 /* A real table: date x result x inspection type IS tabular data, and the
    column headers carry the meaning that alignment alone used to. */
 .ledger {
+    /* The violations row indents to the width of the date column; these two
+       values must not drift apart. Unset on mobile so both fall back. */
+    --ledger-date-col: 6.5rem;
     width: 100%;
     margin-top: var(--space-md);
     border-collapse: collapse;
@@ -484,7 +496,7 @@ main {
     padding: 0 var(--space-sm) var(--space-2xs) 0;
     border-bottom: 1px solid var(--rule-strong);
     color: var(--muted);
-    font-size: var(--text-xs);
+    font-size: var(--text-dense);
     font-weight: 500;
     white-space: nowrap;
 }
@@ -499,7 +511,7 @@ main {
 }
 
 .ledger-date {
-    width: 6.5rem;
+    width: var(--ledger-date-col, auto);
     color: var(--muted);
     font-size: var(--text-sm);
     font-weight: 400;
@@ -516,7 +528,7 @@ main {
 /* Violations disclosure */
 
 .violations-toggle {
-    margin-left: 6.5rem;
+    margin-left: var(--ledger-date-col, 0);
 }
 
 .violations-toggle > summary {
@@ -534,6 +546,7 @@ main {
 
 .violations-toggle > summary::-webkit-details-marker { display: none; }
 .violations-toggle > summary:hover { color: var(--rose); }
+.violations-toggle > summary:active { color: var(--rose-hover); }
 
 .violations-toggle > summary::before {
     content: "";
@@ -613,34 +626,35 @@ main {
     max-width: var(--measure);
 }
 
-.notice {
-    margin-top: var(--space-sm);
-    padding: var(--space-sm);
-    background: var(--surface);
-    border: 1px solid var(--rule-strong);
-    border-radius: var(--radius-md);
-}
 
 /* ---------- Responsive ---------- */
 
 @media (max-width: 44rem) {
     /* --text-lg comes down with the others, or the standing claim and the
        section heading land 2px apart and the hierarchy collapses here. */
-    :root { --text-2xl: 1.875rem; --text-xl: 1.5rem; --text-lg: 1.25rem; }
+    :root {
+        --text-2xl: 1.875rem;
+        --text-xl: 1.5rem;
+        --text-lg: 1.25rem;
+        /* Prose-scale small text clears 14px on phones; --text-dense does not
+           follow it, so the ledger's own columns keep their width. */
+        --text-xs: 0.875rem;
+    }
 
     /* Keep the table a table on mobile: display:block would strip the
        semantics this markup exists to provide. Buy the Inspection column room
        by shrinking the two fixed-content columns instead — this halves the
        number of rows whose type label wraps to a second line. */
-    .ledger-date { width: auto; font-size: var(--text-xs); }
+    .ledger { --ledger-date-col: initial; }
+    .ledger-date { font-size: var(--text-dense); }
     .ledger-result { width: auto; }
-    .ledger .badge { font-size: 0.75rem; padding: 0.15em 0.4em; }
+    .ledger .badge { padding: 0.15em 0.4em; }
 
     .ledger td,
     .ledger tbody th,
     .ledger thead th { padding-right: var(--space-2xs); }
 
-    .violations-toggle { margin-left: 0; }
+
 }
 
 @media (prefers-reduced-motion: reduce) {

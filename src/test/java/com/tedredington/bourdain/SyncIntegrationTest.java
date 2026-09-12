@@ -6,12 +6,12 @@ import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.List;
 
+import com.tedredington.bourdain.civicdata.CivicDataSync;
 import com.tedredington.bourdain.civicdata.InspectionRecord;
 import com.tedredington.bourdain.civicdata.LicenseRecord;
 import com.tedredington.bourdain.civicdata.SyncSource;
 import com.tedredington.bourdain.civicdata.SyncStatus;
 import com.tedredington.bourdain.civicdata.internal.CivicDataSource;
-import com.tedredington.bourdain.civicdata.internal.SyncService;
 import com.tedredington.bourdain.establishment.EstablishmentStatus;
 import com.tedredington.bourdain.establishment.Establishments;
 import com.tedredington.bourdain.inspection.InspectionResult;
@@ -57,7 +57,7 @@ class SyncIntegrationTest {
     static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:17");
 
     @Autowired
-    private SyncService syncService;
+    private CivicDataSync civicDataSync;
     @Autowired
     private Establishments establishments;
     @Autowired
@@ -68,7 +68,7 @@ class SyncIntegrationTest {
     @Test
     @Order(1)
     void fullSyncIngestsDerivesAndMatches() {
-        syncService.syncAll();
+        civicDataSync.syncAll();
 
         assertThat(establishments.count()).isEqualTo(2);
         assertThat(syncStatus.lastSuccessful(SyncSource.INSPECTIONS))
@@ -106,7 +106,7 @@ class SyncIntegrationTest {
     @Test
     @Order(2)
     void reRunningTheSyncIsIdempotent() {
-        syncService.syncAll();
+        civicDataSync.syncAll();
 
         assertThat(establishments.count()).isEqualTo(2);
         assertThat(inspections.history(18158)).hasSize(2);

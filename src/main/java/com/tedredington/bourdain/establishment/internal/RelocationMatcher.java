@@ -21,7 +21,7 @@ import com.tedredington.bourdain.establishment.EstablishmentView.Relocation;
  *       ("SUBWAY"), where name identity says nothing about relocation.</li>
  * </ul>
  */
-public final class RelocationMatcher {
+final class RelocationMatcher {
 
     /** How long before the closure a new location's license may have started. */
     private static final long GRACE_DAYS = 365;
@@ -29,13 +29,13 @@ public final class RelocationMatcher {
     private RelocationMatcher() {
     }
 
-    public record Closed(long licenseNumber, String address, LocalDate lastInspectedOn) {
+    record Closed(long licenseNumber, String address, LocalDate lastInspectedOn) {
     }
 
-    public record Candidate(long licenseNumber, String address, LocalDate startDate, LocalDate expirationDate) {
+    record Candidate(long licenseNumber, String address, LocalDate startDate, LocalDate expirationDate) {
     }
 
-    public static Optional<Relocation> match(Closed closed, List<Candidate> candidates, LocalDate today) {
+    static Optional<Relocation> match(Closed closed, List<Candidate> candidates, LocalDate today) {
         List<Candidate> plausible = candidates.stream()
                 .filter(c -> c.licenseNumber() != closed.licenseNumber())
                 .filter(c -> !Addresses.sameLocation(c.address(), closed.address()))

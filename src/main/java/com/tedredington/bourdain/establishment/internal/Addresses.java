@@ -8,7 +8,7 @@ import java.util.regex.Pattern;
  * address differently ("2913 N CLARK ST " vs "2913 N CLARK ST 1ST"), so suite
  * and floor suffixes are ignored while the street core is preserved.
  */
-public final class Addresses {
+final class Addresses {
 
     private static final Pattern HOUSE_NUMBER = Pattern.compile("^\\s*(\\d+)");
     private static final Pattern NUMBER_AND_STREET = Pattern.compile("^(\\d+)\\s+(.+)$");

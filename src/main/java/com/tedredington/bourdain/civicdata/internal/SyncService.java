@@ -127,7 +127,7 @@ class SyncService implements CivicDataSync {
             String lastRowId = null;
             int upserted = 0;
             int skipped = 0;
-            // Cutoff for the purge below. Taken from the database clock, not the
+            // Cutoff for delisting below. Taken from the database clock, not the
             // JVM's — rows are stamped with the DB's now(), and the two clocks
             // can disagree (e.g. a VM-hosted Postgres).
             OffsetDateTime runStart = jdbc.sql("select now()").query(OffsetDateTime.class).single();
@@ -145,12 +145,16 @@ class SyncService implements CivicDataSync {
                 lastRowId = page.lastRowId();
             }
             // The source dataset drops lapsed licenses, so anything we didn't
-            // touch this run no longer exists upstream.
-            int purged = jdbc.sql("delete from business_license where updated_at < :runStart")
+            // touch this run is no longer listed upstream. Mark rather than
+            // delete: once dropped, this mirror is the only record it existed.
+            int delisted = jdbc.sql("""
+                            update business_license set delisted_at = now()
+                            where updated_at < :runStart and delisted_at is null
+                            """)
                     .param("runStart", runStart)
                     .update();
-            if (purged > 0) {
-                log.info("Purged {} lapsed licenses", purged);
+            if (delisted > 0) {
+                log.info("Marked {} lapsed licenses as delisted", delisted);
             }
             finish(runId, SyncSource.LICENSES, upserted, skipped, null);
         } catch (RuntimeException e) {

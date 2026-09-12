@@ -16,12 +16,33 @@ import org.springframework.stereotype.Component;
  * Maintains the establishment row per license from the inspection stream, and
  * mirrors active business licenses. An establishment reflects its most recent
  * inspection: the conditional upsert ignores rows older than what's stored, so
- * batch order within a page doesn't matter.
+ * batch order within a page doesn't matter. A newer inspection that changes the
+ * establishment's details (often a new owner on a reused license number) keeps
+ * the details it replaces as a revision.
  */
 @Component
 class EstablishmentIngest {
 
+    /**
+     * Archives the stored details if a not-older inspection changes them, then
+     * upserts under the same condition. One statement per row, so a page with
+     * several newer inspections for one license archives each version once.
+     */
     private static final String UPSERT_ESTABLISHMENT = """
+            with changed as (
+                insert into establishment_revision (license_number, name, aka_name, facility_type_raw,
+                                                    facility_category, risk, address, city, state, zip,
+                                                    latitude, longitude, last_inspected_on)
+                select license_number, name, aka_name, facility_type_raw,
+                       facility_category, risk, address, city, state, zip,
+                       latitude, longitude, last_inspected_on
+                from establishment
+                where license_number = :licenseNumber
+                  and :lastInspectedOn >= coalesce(last_inspected_on, date '1900-01-01')
+                  and (name, aka_name, facility_type_raw, risk, address, city, state, zip, latitude, longitude)
+                      is distinct from (:name, :akaName, :facilityTypeRaw, :risk, :address, :city, :state, :zip,
+                                        :latitude, :longitude)
+            )
             insert into establishment (license_number, name, normalized_name, aka_name, facility_type_raw,
                                        facility_category, risk, address, city, state, zip, latitude, longitude,
                                        latest_result, last_inspected_on)
@@ -68,6 +89,7 @@ class EstablishmentIngest {
                 status_raw = excluded.status_raw,
                 latitude = excluded.latitude,
                 longitude = excluded.longitude,
+                delisted_at = null,
                 updated_at = now()
             """;
 

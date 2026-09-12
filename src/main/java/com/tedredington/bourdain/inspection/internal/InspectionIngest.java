@@ -17,12 +17,28 @@ import org.springframework.stereotype.Component;
 
 /**
  * Writes inspection pages inside the sync's page transaction. Idempotent:
- * re-running a page upserts the same rows and rebuilds their violations.
+ * re-running a page upserts the same rows and rebuilds their violations. When
+ * the city amends an inspection, the version it replaces is kept as a revision.
  */
 @Component
 class InspectionIngest {
 
+    /**
+     * Archives the stored row if the incoming one differs, then upserts. One
+     * statement per row: both parts see the row as it was before this statement,
+     * and each batch row sees the effect of the one before it.
+     */
     private static final String UPSERT = """
+            with amended as (
+                insert into inspection_revision (inspection_id, license_number, dba_name, inspected_on, result,
+                                                 inspection_type, inspection_type_raw, violations_raw)
+                select id, license_number, dba_name, inspected_on, result,
+                       inspection_type, inspection_type_raw, violations_raw
+                from inspection
+                where id = :id
+                  and (license_number, dba_name, inspected_on, result, inspection_type_raw, violations_raw)
+                      is distinct from (:licenseNumber, :dbaName, :inspectedOn, :result, :typeRaw, :violationsRaw)
+            )
             insert into inspection (id, license_number, dba_name, inspected_on, result,
                                     inspection_type, inspection_type_raw, violations_raw, updated_at)
             values (:id, :licenseNumber, :dbaName, :inspectedOn, :result, :type, :typeRaw, :violationsRaw, now())

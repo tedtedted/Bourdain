@@ -12,7 +12,7 @@ import com.tedredington.bourdain.inspection.Inspections.ViolationLine;
  * {@code "N. DESCRIPTION - Comments: FREE TEXT | N. DESCRIPTION - Comments: ..."}.
  * The comment part is optional; segments that don't match the shape are skipped.
  */
-public final class ViolationParser {
+final class ViolationParser {
 
     private static final Pattern SEGMENT =
             Pattern.compile("^\\s*(\\d+)\\.\\s*(.+?)(?:\\s*-\\s*Comments:\\s*(.*))?$", Pattern.DOTALL);
@@ -20,7 +20,7 @@ public final class ViolationParser {
     private ViolationParser() {
     }
 
-    public static List<ViolationLine> parse(String raw) {
+    static List<ViolationLine> parse(String raw) {
         if (raw == null || raw.isBlank()) {
             return List.of();
         }

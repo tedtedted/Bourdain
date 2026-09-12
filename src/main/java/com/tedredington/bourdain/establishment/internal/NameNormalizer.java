@@ -6,7 +6,7 @@ import java.util.Locale;
  * Canonical form for matching business names across datasets: the inspections
  * feed has "THE DUKE OF PERTH" where the license feed has "Duke of Perth".
  */
-public final class NameNormalizer {
+final class NameNormalizer {
 
     private NameNormalizer() {
     }

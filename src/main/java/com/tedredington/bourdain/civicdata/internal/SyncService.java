@@ -7,6 +7,7 @@ import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import com.tedredington.bourdain.civicdata.CivicDataSync;
 import com.tedredington.bourdain.civicdata.CivicDataSyncCompleted;
 import com.tedredington.bourdain.civicdata.InspectionBatchReceived;
 import com.tedredington.bourdain.civicdata.LicenseBatchReceived;
@@ -26,7 +27,7 @@ import org.springframework.transaction.support.TransactionTemplate;
  * Upserts are idempotent, making re-reading overlap harmless.
  */
 @Service
-public class SyncService {
+class SyncService implements CivicDataSync {
 
     private static final Logger log = LoggerFactory.getLogger(SyncService.class);
     private static final DateTimeFormatter SOCRATA_TIMESTAMP =
@@ -54,6 +55,7 @@ public class SyncService {
     }
 
     /** Runs both sources; skips silently if a sync is already in flight. */
+    @Override
     public void syncAll() {
         if (!running.compareAndSet(false, true)) {
             log.info("Sync already running; skipping this trigger");

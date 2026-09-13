@@ -23,7 +23,9 @@ import org.springframework.stereotype.Service;
  * The sync → matching handoff. Runs after the license sync transaction commits
  * (Modulith registry event, so a crash here is retried on restart) and
  * recomputes every establishment's status from scratch — the derivation is
- * cheap and idempotence beats bookkeeping about what changed.
+ * cheap and idempotence beats bookkeeping about what changed. The outcome is
+ * then compared against each establishment's last recorded status, so the
+ * timeline only grows when something actually changed.
  */
 @Service
 class RelocationService {
@@ -64,6 +66,7 @@ class RelocationService {
                         from establishment e
                         join business_license bl on bl.normalized_name = e.normalized_name
                         where e.status = 'CLOSED' and bl.license_number <> e.license_number
+                          and bl.delisted_at is null
                         """,
                 rs -> {
                     long closedLicense = rs.getLong("closed_license");
@@ -95,7 +98,29 @@ class RelocationService {
                             """,
                     updates.toArray(SqlParameterSource[]::new));
         }
-        log.info("Status derivation done: {} closed establishments, {} marked relocated", closed.size(), updates.size());
+        int changes = recordStatusChanges();
+        log.info("Status derivation done: {} closed establishments, {} marked relocated, {} status changes recorded",
+                closed.size(), updates.size(), changes);
+    }
+
+    /** Runs in the same transaction as derivation, so the interim reset above is never recorded. */
+    private int recordStatusChanges() {
+        return jdbc.update("""
+                insert into establishment_status_change (license_number, status, relocated_to_license_number,
+                                                         relocated_to_address, relocated_since)
+                select e.license_number, e.status, e.relocated_to_license_number,
+                       e.relocated_to_address, e.relocated_since
+                from establishment e
+                left join lateral (
+                    select c.status, c.relocated_to_license_number
+                    from establishment_status_change c
+                    where c.license_number = e.license_number
+                    order by c.id desc
+                    limit 1
+                ) last on true
+                where (e.status, e.relocated_to_license_number)
+                      is distinct from (last.status, last.relocated_to_license_number)
+                """, new MapSqlParameterSource());
     }
 
     private static SqlParameterSource params(long licenseNumber, Relocation relocation) {

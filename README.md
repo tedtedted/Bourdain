@@ -66,6 +66,12 @@ Tailscale IP (or use `tailscale serve`) to reach it from the tailnet.
 
 - `establishment` identity is the city license number, which is **not** stable
   across ownership changes — inspections keep their own name snapshot.
+- The database is the only copy of history. The city's feeds describe the
+  present, so sync keeps what they overwrite: delisted licenses are marked
+  rather than deleted, amended inspections and changed establishment details
+  are kept as `*_revision` rows, and `establishment_status_change` records every
+  status transition. A restart syncs incrementally; nothing is rebuilt from
+  scratch, so back the database up.
 - Relocation matching is deliberately conservative: it requires exactly one
   plausible new location, so chains never match. Geographic disambiguation is
   future work.

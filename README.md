@@ -3,7 +3,7 @@
 Chicago restaurant health inspections, searchable. Mirrors the city's
 [Food Inspections](https://data.cityofchicago.org/Health-Human-Services/Food-Inspections/4ijn-s7e5)
 and [Business Licenses (active)](https://data.cityofchicago.org/Community-Economic-Development/Business-Licenses-Current-Active/uupf-x98q)
-datasets daily and serves a small search UI.
+datasets weekly and serves a small search UI.
 Built with **Java 25**, **Spring Boot 4**, **Spring Modulith**, **PostgreSQL**, **Flyway**, and **Thymeleaf + htmx**.
 
 The reason for the second dataset: the inspections feed only knows about

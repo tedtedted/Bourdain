@@ -1,8 +1,8 @@
 /**
  * Inspection history: results, types, and parsed violations. Read models are
  * exposed as records via {@link com.tedredington.bourdain.inspection.Inspections};
- * persistence stays internal (plain JDBC — this module is write-batch and
- * read-model shaped, with no entity graph to justify JPA).
+ * persistence stays internal: a Spring Data JDBC aggregate for reads, and batch
+ * upsert SQL for writes.
  */
 @org.springframework.modulith.ApplicationModule(
         displayName = "Inspections",

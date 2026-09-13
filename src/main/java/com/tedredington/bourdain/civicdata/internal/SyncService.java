@@ -142,7 +142,7 @@ class SyncService implements CivicDataSync {
         }
     }
 
-    private void finish(SyncRunRepository.StartedRun run, SyncSource syncSource, int upserted, int skipped,
+    private void finish(SyncRun run, SyncSource syncSource, int upserted, int skipped,
                         String watermark) {
         // Completion is recorded and published in one transaction: the Modulith
         // JDBC registry stores the event alongside the run row, then delivers it

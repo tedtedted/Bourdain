@@ -25,6 +25,8 @@ class InspectionsImpl implements Inspections {
     /** One transaction, so a sync committing mid-read can't pair inspections with the wrong violations. */
     @Override
     public List<InspectionDetail> history(long licenseNumber) {
-        return repository.findHistory(licenseNumber);
+        return repository.findHistory(licenseNumber).stream()
+                .map(Inspection::toDetail)
+                .toList();
     }
 }

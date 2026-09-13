@@ -39,13 +39,13 @@ class SyncServiceTest {
         when(syncRuns.start(SyncSource.INSPECTIONS))
                 .thenReturn(new SyncRunRepository.StartedRun(42L, Instant.parse("2026-09-06T11:30:00Z")));
         when(syncRuns.findLastWatermark(SyncSource.INSPECTIONS))
-                .thenReturn(Optional.of("2026-09-05T12:00:00.000"));
-        when(source.inspectionsPage("2026-09-05T11:55:00.000", null, 1000))
+                .thenReturn(Optional.of("2026-09-05T12:00:00.000Z"));
+        when(source.inspectionsPage("2026-09-05T11:55:00.000Z", null, 1000))
                 .thenReturn(new CivicDataSource.InspectionPage(List.of(), null, null, 0));
 
         service.syncInspections();
 
-        verify(syncRuns).complete(42L, 0, 0, "2026-09-05T12:00:00.000");
+        verify(syncRuns).complete(42L, 0, 0, "2026-09-05T12:00:00.000Z");
     }
 
     private static final class NoOpTransactionManager implements PlatformTransactionManager {

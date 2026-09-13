@@ -1,7 +1,8 @@
 package com.tedredington.bourdain.civicdata.internal;
 
 import java.time.Duration;
-import java.time.LocalDateTime;
+import java.time.Instant;
+import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -28,8 +29,9 @@ import org.springframework.transaction.support.TransactionTemplate;
 class SyncService implements CivicDataSync {
 
     private static final Logger log = LoggerFactory.getLogger(SyncService.class);
+    /** {@code :updated_at} is a fixed timestamp: UTC, millisecond precision, trailing Z. */
     private static final DateTimeFormatter SOCRATA_TIMESTAMP =
-            DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSS");
+            DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'").withZone(ZoneOffset.UTC);
 
     private final CivicDataSource source;
     private final SyncRunRepository syncRuns;
@@ -107,9 +109,7 @@ class SyncService implements CivicDataSync {
             return watermark;
         }
         try {
-            return LocalDateTime.parse(watermark)
-                    .minus(overlap)
-                    .format(SOCRATA_TIMESTAMP);
+            return SOCRATA_TIMESTAMP.format(Instant.parse(watermark).minus(overlap));
         } catch (DateTimeParseException e) {
             log.warn("Could not apply inspection watermark overlap to {}", watermark, e);
             return watermark;

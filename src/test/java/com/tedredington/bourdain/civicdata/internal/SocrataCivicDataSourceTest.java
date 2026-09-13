@@ -52,12 +52,12 @@ class SocrataCivicDataSourceTest {
     void mapsRowsAndTracksKeysetCursorAndWatermark() {
         server.expect(query("/resource/insp-ds.json",
                         "license_ > 0",
-                        ":updated_at > '2026-01-01T00:00:00.000'",
+                        ":updated_at > '2026-01-01T00:00:00.000Z'",
                         "$order=:id"))
                 .andExpect(header("X-App-Token", "test-token"))
                 .andRespond(withSuccess("""
                         [{
-                          ":id": "row-aaa", ":updated_at": "2026-02-01T05:00:00.000",
+                          ":id": "row-aaa", ":updated_at": "2026-02-01T05:00:00.000Z",
                           "inspection_id": "2597589", "dba_name": "THE DUKE OF PERTH",
                           "aka_name": "THE DUKE OF PERTH", "license_": "18158",
                           "facility_type": "Restaurant", "risk": "Risk 1 (High)",
@@ -66,12 +66,12 @@ class SocrataCivicDataSourceTest {
                           "results": "Out of Business", "latitude": "41.934", "longitude": "-87.644"
                         },
                         {
-                          ":id": "row-bbb", ":updated_at": "2026-02-02T05:00:00.000",
+                          ":id": "row-bbb", ":updated_at": "2026-02-02T05:00:00.000Z",
                           "inspection_id": "9", "dba_name": "MISSING BITS"
                         }]
                         """, MediaType.APPLICATION_JSON));
 
-        var page = source.inspectionsPage("2026-01-01T00:00:00.000", null, 1000);
+        var page = source.inspectionsPage("2026-01-01T00:00:00.000Z", null, 1000);
 
         assertThat(page.records()).hasSize(1);
         InspectionRecord record = page.records().getFirst();
@@ -83,7 +83,7 @@ class SocrataCivicDataSourceTest {
         // The row without license/date is skipped but still advances the cursor.
         assertThat(page.skipped()).isEqualTo(1);
         assertThat(page.lastRowId()).isEqualTo("row-bbb");
-        assertThat(page.maxUpdatedAt()).isEqualTo("2026-02-02T05:00:00.000");
+        assertThat(page.maxUpdatedAt()).isEqualTo("2026-02-02T05:00:00.000Z");
     }
 
     @Test
@@ -143,7 +143,7 @@ class SocrataCivicDataSourceTest {
         server.expect(query("/resource/insp-ds.json", "license_ > 0"))
                 .andRespond(withSuccess("""
                         [{
-                          ":id": "row-retry", ":updated_at": "2026-02-01T05:00:00.000",
+                          ":id": "row-retry", ":updated_at": "2026-02-01T05:00:00.000Z",
                           "inspection_id": "2597589", "dba_name": "THE DUKE OF PERTH",
                           "license_": "18158", "address": "2913 N CLARK ST",
                           "inspection_date": "2024-07-16T00:00:00.000"

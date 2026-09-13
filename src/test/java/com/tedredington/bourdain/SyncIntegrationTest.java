@@ -223,7 +223,7 @@ class SyncIntegrationTest {
                 @Override
                 public InspectionPage inspectionsPage(String updatedSince, String lastRowId, int pageSize) {
                     return lastRowId == null
-                            ? new InspectionPage(inspectionRows, "row-3", "2026-08-20T00:00:00.000", 0)
+                            ? new InspectionPage(inspectionRows, "row-3", "2026-08-20T00:00:00.000Z", 0)
                             : new InspectionPage(List.of(), null, null, 0);
                 }
 

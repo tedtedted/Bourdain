@@ -9,6 +9,7 @@ import com.tedredington.bourdain.inspection.InspectionResult;
 /** An establishment's details as one inspection recorded them. */
 record EstablishmentSnapshot(
         long licenseNumber,
+        long inspectionId,
         String name,
         String normalizedName,
         String akaName,

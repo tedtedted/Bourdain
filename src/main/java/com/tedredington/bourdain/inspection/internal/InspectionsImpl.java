@@ -2,8 +2,10 @@ package com.tedredington.bourdain.inspection.internal;
 
 import java.util.List;
 
+import com.tedredington.bourdain.inspection.InspectionResult;
 import com.tedredington.bourdain.inspection.Inspections;
 
+import org.springframework.data.domain.Limit;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -19,10 +21,9 @@ class InspectionsImpl implements Inspections {
 
     @Override
     public List<RecentFailure> recentFailures(int limit) {
-        return repository.findRecentFailures(limit);
+        return repository.findByResult(InspectionResult.FAIL, Limit.of(limit));
     }
 
-    /** One transaction, so a sync committing mid-read can't pair inspections with the wrong violations. */
     @Override
     public List<InspectionDetail> history(long licenseNumber) {
         return repository.findHistory(licenseNumber).stream()

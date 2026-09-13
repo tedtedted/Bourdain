@@ -7,7 +7,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
-interface EstablishmentRepository extends JpaRepository<Establishment, Long> {
+interface EstablishmentRepository extends JpaRepository<Establishment, Long>, EstablishmentRepositoryCustom {
 
     List<Establishment> findByZipOrderByLastInspectedOnDesc(String zip, Limit limit);
 

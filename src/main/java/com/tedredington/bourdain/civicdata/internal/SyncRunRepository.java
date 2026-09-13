@@ -1,20 +1,27 @@
 package com.tedredington.bourdain.civicdata.internal;
 
+import java.time.Instant;
+import java.time.OffsetDateTime;
 import java.util.Optional;
 
 import com.tedredington.bourdain.civicdata.SyncSource;
-import com.tedredington.bourdain.civicdata.SyncStatus;
+import com.tedredington.bourdain.civicdata.SyncStatus.LastSync;
+import com.tedredington.bourdain.civicdata.SyncStatus.SyncAttempt;
 
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
 
 /** {@code sync_run} bookkeeping: run lifecycle plus watermark lookup. */
 @Repository
-class SyncRuns implements SyncStatus {
+class SyncRunRepository {
+
+    /** A run's id and its start time by the database clock. */
+    record StartedRun(long id, Instant startedAt) {
+    }
 
     private final JdbcClient jdbc;
 
-    SyncRuns(JdbcClient jdbc) {
+    SyncRunRepository(JdbcClient jdbc) {
         this.jdbc = jdbc;
     }
 
@@ -32,13 +39,15 @@ class SyncRuns implements SyncStatus {
                 .update();
     }
 
-    long start(SyncSource source) {
+    StartedRun start(SyncSource source) {
         return jdbc.sql("""
                         insert into sync_run (source, started_at, status)
-                        values (:source, now(), 'RUNNING') returning id
+                        values (:source, now(), 'RUNNING') returning id, started_at
                         """)
                 .param("source", source.name())
-                .query(Long.class)
+                .query((rs, i) -> new StartedRun(
+                        rs.getLong("id"),
+                        rs.getObject("started_at", OffsetDateTime.class).toInstant()))
                 .single();
     }
 
@@ -68,7 +77,7 @@ class SyncRuns implements SyncStatus {
     }
 
     /** Watermark of the most recent successful run, if any. */
-    Optional<String> lastWatermark(SyncSource source) {
+    Optional<String> findLastWatermark(SyncSource source) {
         return jdbc.sql("""
                         select watermark from sync_run
                         where source = :source and status = 'SUCCEEDED' and watermark is not null
@@ -79,20 +88,20 @@ class SyncRuns implements SyncStatus {
                 .optional();
     }
 
-    @Override
-    public Optional<LastSync> lastSuccessful(SyncSource source) {
+    Optional<LastSync> findLastSuccessful(SyncSource source) {
         return jdbc.sql("""
                         select finished_at, rows_upserted from sync_run
                         where source = :source and status = 'SUCCEEDED'
                         order by started_at desc limit 1
                         """)
                 .param("source", source.name())
-                .query((rs, i) -> new LastSync(rs.getTimestamp("finished_at").toInstant(), rs.getInt("rows_upserted")))
+                .query((rs, i) -> new LastSync(
+                        rs.getObject("finished_at", OffsetDateTime.class).toInstant(),
+                        rs.getInt("rows_upserted")))
                 .optional();
     }
 
-    @Override
-    public Optional<SyncAttempt> lastAttempt(SyncSource source) {
+    Optional<SyncAttempt> findLastAttempt(SyncSource source) {
         return jdbc.sql("""
                         select coalesce(finished_at, started_at) as at, status, message
                         from sync_run
@@ -101,7 +110,7 @@ class SyncRuns implements SyncStatus {
                         """)
                 .param("source", source.name())
                 .query((rs, i) -> new SyncAttempt(
-                        rs.getTimestamp("at").toInstant(),
+                        rs.getObject("at", OffsetDateTime.class).toInstant(),
                         rs.getString("status"),
                         rs.getString("message")))
                 .optional();

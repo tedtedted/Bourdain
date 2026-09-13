@@ -1,6 +1,7 @@
 package com.tedredington.bourdain.civicdata.internal;
 
 import java.time.Duration;
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 
@@ -8,7 +9,6 @@ import com.tedredington.bourdain.civicdata.SyncSource;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.context.ApplicationEventPublisher;
-import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.TransactionDefinition;
 import org.springframework.transaction.TransactionStatus;
@@ -24,7 +24,7 @@ class SyncServiceTest {
     @Test
     void inspectionSyncQueriesWithWatermarkOverlapButPersistsOriginalMaxWatermark() {
         CivicDataSource source = mock(CivicDataSource.class);
-        SyncRuns syncRuns = mock(SyncRuns.class);
+        SyncRunRepository syncRuns = mock(SyncRunRepository.class);
         SyncService service = new SyncService(
                 source,
                 syncRuns,
@@ -34,11 +34,11 @@ class SyncServiceTest {
                         "insp-ds", "lic-ds", List.of("Retail Food Establishment")),
                 new SyncProperties("0 30 6 * * *", "America/Chicago", true, Duration.ofMinutes(5)),
                 mock(ApplicationEventPublisher.class),
-                new TransactionTemplate(new NoOpTransactionManager()),
-                mock(JdbcClient.class));
+                new TransactionTemplate(new NoOpTransactionManager()));
 
-        when(syncRuns.start(SyncSource.INSPECTIONS)).thenReturn(42L);
-        when(syncRuns.lastWatermark(SyncSource.INSPECTIONS))
+        when(syncRuns.start(SyncSource.INSPECTIONS))
+                .thenReturn(new SyncRunRepository.StartedRun(42L, Instant.parse("2026-09-06T11:30:00Z")));
+        when(syncRuns.findLastWatermark(SyncSource.INSPECTIONS))
                 .thenReturn(Optional.of("2026-09-05T12:00:00.000"));
         when(source.inspectionsPage("2026-09-05T11:55:00.000", null, 1000))
                 .thenReturn(new CivicDataSource.InspectionPage(List.of(), null, null, 0));

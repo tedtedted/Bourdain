@@ -51,9 +51,9 @@ bourdain:
       - Shared Kitchen User (Long Term)
       - Mobile Food License
   sync:
-    # The city refreshes the dataset daily; 06:30 Chicago time picks up the
-    # previous day's inspections.
-    cron: "0 30 6 * * *"
+    # The city refreshes the dataset daily, but weekly mirroring is enough for
+    # this app. Monday 06:30 Chicago time picks up the prior week's changes.
+    cron: "0 30 6 * * MON"
     zone: America/Chicago
     on-startup: true
     # Re-read a small window because Socrata watermarks are not guaranteed to be

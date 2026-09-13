@@ -9,13 +9,31 @@
         <link rel="preload" as="font" type="font/woff2" crossorigin
               th:href="@{/fonts/plexsans-var.woff2}">
         <link rel="stylesheet" th:href="@{/style.css}">
+        <!-- Inline and blocking on purpose: a saved theme has to be on <html>
+             before first paint, or the system theme flashes first. -->
+        <script>
+            try {
+                const theme = localStorage.getItem("theme");
+                if (theme === "light" || theme === "dark") {
+                    document.documentElement.dataset.theme = theme;
+                    document.querySelector('meta[name="color-scheme"]').content = theme;
+                }
+            } catch (e) {}
+        </script>
         <script th:src="@{/vendor/htmx.min.js}" defer></script>
+        <script th:src="@{/theme.js}" defer></script>
     </th:block>
 </head>
 <body>
 <header th:fragment="header" class="site-header">
     <a href="/" class="brand">bourdain</a>
     <span class="tagline">Chicago food inspections, without the mystery</span>
+    <fieldset class="theme-switch" hidden>
+        <legend class="visually-hidden">Theme</legend>
+        <label><input type="radio" name="theme" value="system" checked><span>System</span></label>
+        <label><input type="radio" name="theme" value="light"><span>Light</span></label>
+        <label><input type="radio" name="theme" value="dark"><span>Dark</span></label>
+    </fieldset>
 </header>
 
 <th:block th:fragment="searchForm">

@@ -82,7 +82,8 @@ site, the system has already broken.
 
 **The One Design Rule.** Dark theme is the same Restrained strategy at a
 different lightness — same accent, same status colors, same discipline. Only the
-neutral tokens flip on `prefers-color-scheme`. A `FAIL` badge is the same color
+neutral tokens flip: they follow `prefers-color-scheme` until the reader picks
+Light or Dark from the header's theme control. A `FAIL` badge is the same color
 in both themes; two screenshots of one fact must never disagree.
 
 ## 3. Typography

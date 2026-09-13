@@ -8,55 +8,34 @@ import com.tedredington.bourdain.establishment.FacilityCategory;
 import com.tedredington.bourdain.establishment.Risk;
 import com.tedredington.bourdain.inspection.InspectionResult;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
+import org.springframework.data.annotation.Id;
+import org.springframework.data.relational.core.mapping.Table;
 
 /**
- * JPA view of the {@code establishment} table. Rows are only written through
- * the SQL in {@link EstablishmentRepositoryCustom}; this entity is read-only
- * in practice and only exists to back queries.
+ * One row per city license number. Only ever written through the SQL in
+ * {@link EstablishmentRepositoryCustom}; this aggregate exists to back reads.
  */
-@Entity
-@Table(name = "establishment")
-class Establishment {
-
-    @Id
-    private Long licenseNumber;
-
-    private String name;
-    private String normalizedName;
-    private String akaName;
-    private String facilityTypeRaw;
-
-    @Enumerated(EnumType.STRING)
-    private FacilityCategory facilityCategory;
-
-    @Enumerated(EnumType.STRING)
-    private Risk risk;
-
-    private String address;
-    private String city;
-    private String state;
-    private String zip;
-    private Double latitude;
-    private Double longitude;
-
-    @Enumerated(EnumType.STRING)
-    private EstablishmentStatus status;
-
-    @Enumerated(EnumType.STRING)
-    private InspectionResult latestResult;
-
-    private LocalDate lastInspectedOn;
-    private Long relocatedToLicenseNumber;
-    private String relocatedToAddress;
-    private LocalDate relocatedSince;
-
-    protected Establishment() {
-    }
+@Table("establishment")
+record Establishment(
+        @Id long licenseNumber,
+        String name,
+        String normalizedName,
+        String akaName,
+        String facilityTypeRaw,
+        FacilityCategory facilityCategory,
+        Risk risk,
+        String address,
+        String city,
+        String state,
+        String zip,
+        Double latitude,
+        Double longitude,
+        EstablishmentStatus status,
+        InspectionResult latestResult,
+        LocalDate lastInspectedOn,
+        Long relocatedToLicenseNumber,
+        String relocatedToAddress,
+        LocalDate relocatedSince) {
 
     EstablishmentView toView() {
         EstablishmentView.Relocation relocation = null;

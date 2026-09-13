@@ -37,7 +37,8 @@ class SyncServiceTest {
                 new TransactionTemplate(new NoOpTransactionManager()));
 
         when(syncRuns.start(SyncSource.INSPECTIONS))
-                .thenReturn(new SyncRunRepository.StartedRun(42L, Instant.parse("2026-09-06T11:30:00Z")));
+                .thenReturn(new SyncRun(42L, SyncSource.INSPECTIONS, Instant.parse("2026-09-06T11:30:00Z"),
+                        null, SyncRun.Status.RUNNING, 0, 0, null, null));
         when(syncRuns.findLastWatermark(SyncSource.INSPECTIONS))
                 .thenReturn(Optional.of("2026-09-05T12:00:00.000Z"));
         when(source.inspectionsPage("2026-09-05T11:55:00.000Z", null, 1000))

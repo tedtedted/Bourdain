@@ -2,9 +2,13 @@ package com.tedredington.bourdain.establishment.internal;
 
 import java.time.LocalDate;
 
+import org.springframework.data.annotation.Id;
+import org.springframework.data.relational.core.mapping.Table;
+
 /** One row of the active business license mirror. */
+@Table("business_license")
 record BusinessLicense(
-        String recordId,
+        @Id String recordId,
         long licenseNumber,
         String dbaName,
         String normalizedName,

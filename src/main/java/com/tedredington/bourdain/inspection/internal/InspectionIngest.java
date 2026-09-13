@@ -20,7 +20,7 @@ class InspectionIngest {
 
     @EventListener
     void on(InspectionBatchReceived batch) {
-        inspections.saveAll(batch.records().stream().map(InspectionIngest::inspection).toList());
+        inspections.upsertAll(batch.records().stream().map(InspectionIngest::inspection).toList());
     }
 
     private static Inspection inspection(InspectionRecord r) {
@@ -33,6 +33,6 @@ class InspectionIngest {
                 InspectionType.classify(r.inspectionType()),
                 r.inspectionType(),
                 r.violations(),
-                ViolationParser.parse(r.violations()));
+                ViolationParser.parse(r.violations()).stream().map(Violation::of).toList());
     }
 }

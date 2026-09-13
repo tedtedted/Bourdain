@@ -20,11 +20,16 @@ class SyncStatusImpl implements SyncStatus {
 
     @Override
     public Optional<LastSync> lastSuccessful(SyncSource source) {
-        return syncRuns.findLastSuccessful(source);
+        return syncRuns.findFirstBySourceAndStatusOrderByStartedAtDesc(source, SyncRun.Status.SUCCEEDED)
+                .map(run -> new LastSync(run.finishedAt(), run.rowsUpserted()));
     }
 
     @Override
     public Optional<SyncAttempt> lastAttempt(SyncSource source) {
-        return syncRuns.findLastAttempt(source);
+        return syncRuns.findFirstBySourceOrderByStartedAtDesc(source)
+                .map(run -> new SyncAttempt(
+                        run.finishedAt() != null ? run.finishedAt() : run.startedAt(),
+                        run.status().name(),
+                        run.message()));
     }
 }

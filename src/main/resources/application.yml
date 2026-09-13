@@ -5,10 +5,6 @@ spring:
     url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/bourdain}
     username: ${SPRING_DATASOURCE_USERNAME:bourdain}
     password: ${SPRING_DATASOURCE_PASSWORD:bourdain}
-  jpa:
-    open-in-view: false
-    hibernate:
-      ddl-auto: validate
   threads:
     virtual:
       enabled: true

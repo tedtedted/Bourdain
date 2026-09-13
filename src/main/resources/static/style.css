@@ -94,26 +94,63 @@
     --status-ink: oklch(1 0 0);
 }
 
-/* Light — pure white ground; the rose carries the personality, not the surface. */
+/* Themes. Each neutral is a light-dark() pair, resolved by color-scheme:
+   "light dark" follows the system; the header control pins one side by
+   setting data-theme on <html>. Light is a pure white ground — the rose
+   carries the personality, not the surface. */
 :root {
-    --ground: oklch(1 0 0);
-    --surface: oklch(0.970 0.006 345);
+    --ground: light-dark(oklch(1 0 0), oklch(0.145 0 0));
+    --surface: light-dark(oklch(0.970 0.006 345), oklch(0.198 0.006 345));
     /* One step past --surface; used for pressed states. */
-    --sunken: oklch(0.938 0.010 345);
-    --ink: oklch(0.19 0.014 345);
-    --muted: oklch(0.47 0.016 345);
-    --rose: oklch(0.50 0.17 345);
-    --rose-hover: oklch(0.40 0.15 345);
-    --rule: oklch(0.895 0.010 345);
-    --rule-strong: oklch(0.80 0.012 345);
+    --sunken: light-dark(oklch(0.938 0.010 345), oklch(0.245 0.008 345));
+    --ink: light-dark(oklch(0.19 0.014 345), oklch(0.935 0.008 345));
+    --muted: light-dark(oklch(0.47 0.016 345), oklch(0.715 0.014 345));
+    --rose: light-dark(oklch(0.50 0.17 345), oklch(0.775 0.135 345));
+    --rose-hover: light-dark(oklch(0.40 0.15 345), oklch(0.855 0.085 345));
+    --rule: light-dark(oklch(0.895 0.010 345), oklch(0.285 0.010 345));
+    --rule-strong: light-dark(oklch(0.80 0.012 345), oklch(0.40 0.012 345));
     /* The relocated status as *text* on the page ground, rather than as a fill. */
-    --status-relocated-text: var(--status-relocated);
+    --status-relocated-text: light-dark(var(--status-relocated), oklch(0.80 0.10 235));
     --body-leading: 1.6;
     --body-tracking: 0;
 }
 
-@media (prefers-color-scheme: dark) {
+:root[data-theme="light"] { color-scheme: light; }
+:root[data-theme="dark"] { color-scheme: dark; }
+
+/* Pre-2024 browsers can't resolve light-dark(), so they get the same pairs
+   spelled out by selector. ThemeTokensTest keeps these in step with the
+   block above. */
+@supports not (color: light-dark(#000, #fff)) {
     :root {
+        --ground: oklch(1 0 0);
+        --surface: oklch(0.970 0.006 345);
+        --sunken: oklch(0.938 0.010 345);
+        --ink: oklch(0.19 0.014 345);
+        --muted: oklch(0.47 0.016 345);
+        --rose: oklch(0.50 0.17 345);
+        --rose-hover: oklch(0.40 0.15 345);
+        --rule: oklch(0.895 0.010 345);
+        --rule-strong: oklch(0.80 0.012 345);
+        --status-relocated-text: var(--status-relocated);
+    }
+
+    @media (prefers-color-scheme: dark) {
+        :root:not([data-theme="light"]) {
+            --ground: oklch(0.145 0 0);
+            --surface: oklch(0.198 0.006 345);
+            --sunken: oklch(0.245 0.008 345);
+            --ink: oklch(0.935 0.008 345);
+            --muted: oklch(0.715 0.014 345);
+            --rose: oklch(0.775 0.135 345);
+            --rose-hover: oklch(0.855 0.085 345);
+            --rule: oklch(0.285 0.010 345);
+            --rule-strong: oklch(0.40 0.012 345);
+            --status-relocated-text: oklch(0.80 0.10 235);
+        }
+    }
+
+    :root[data-theme="dark"] {
         --ground: oklch(0.145 0 0);
         --surface: oklch(0.198 0.006 345);
         --sunken: oklch(0.245 0.008 345);
@@ -124,11 +161,22 @@
         --rule: oklch(0.285 0.010 345);
         --rule-strong: oklch(0.40 0.012 345);
         --status-relocated-text: oklch(0.80 0.10 235);
-        /* Light-on-dark reads heavier and tighter. Plex Sans's weight axis
-           stops at 400, so compensate with leading and tracking instead. */
+    }
+}
+
+/* light-dark() only takes colours, so these two need the selectors spelled
+   out. Light-on-dark reads heavier and tighter; Plex Sans's weight axis
+   stops at 400, so compensate with leading and tracking instead. */
+@media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
         --body-leading: 1.66;
         --body-tracking: 0.006em;
     }
+}
+
+:root[data-theme="dark"] {
+    --body-leading: 1.66;
+    --body-tracking: 0.006em;
 }
 
 /* ---------- Base ---------- */
@@ -230,6 +278,69 @@ time, .tabular { font-variant-numeric: tabular-nums; }
 }
 
 .tagline { color: var(--muted); font-size: var(--text-sm); }
+
+/* Theme control. Starts hidden: without script it could do nothing, and the
+   page still follows the system. theme.js reveals it. */
+.theme-switch {
+    display: inline-flex;
+    align-self: center;
+    gap: 2px;
+    margin: 0 0 0 auto;
+    padding: 2px;
+    border: 1px solid var(--rule);
+    border-radius: var(--radius-md);
+}
+
+.theme-switch[hidden] { display: none; }
+
+/* Set by theme.js for the frame a theme switches in. */
+.theme-changing *, .theme-changing *::before, .theme-changing *::after {
+    transition: none !important;
+}
+
+.theme-switch label { position: relative; }
+
+/* Visually replaced by the span, but still focusable, so the radio group
+   keeps its native arrow-key behaviour. */
+.theme-switch input {
+    position: absolute;
+    inset: 0;
+    margin: 0;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.theme-switch span {
+    display: block;
+    padding: var(--space-3xs) var(--space-2xs);
+    border: 1px solid transparent;
+    border-radius: var(--radius-sm);
+    color: var(--muted);
+    font-size: var(--text-dense);
+    line-height: 1.4;
+    cursor: pointer;
+    transition: color var(--dur-fast) var(--ease-out-quart),
+                background-color var(--dur-fast) var(--ease-out-quart);
+}
+
+.theme-switch label:hover span { color: var(--ink); }
+
+.theme-switch input:checked + span {
+    background: var(--surface);
+    border-color: var(--rule);
+    color: var(--rose);
+    font-weight: 500;
+}
+
+.theme-switch input:focus-visible + span {
+    outline: 2px solid var(--rose);
+    outline-offset: 1px;
+}
+
+@media (forced-colors: active) {
+    .theme-switch span { border-color: Canvas; }
+    .theme-switch input:checked + span { border-color: Highlight; }
+}
 
 main {
     max-width: var(--page);
@@ -643,6 +754,9 @@ main {
            follow it, so the ledger's own columns keep their width. */
         --text-xs: 0.875rem;
     }
+
+    /* The theme control keeps the wordmark's line; the tagline drops below. */
+    .tagline { order: 1; flex-basis: 100%; }
 
     /* Keep the table a table on mobile: display:block would strip the
        semantics this markup exists to provide. Buy the Inspection column room

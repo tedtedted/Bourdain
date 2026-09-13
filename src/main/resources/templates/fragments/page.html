@@ -6,6 +6,11 @@
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <title th:text="${title}">Bourdain</title>
         <meta name="color-scheme" content="light dark">
+        <!-- The ICO carries hand-rendered 16/32/48 frames for browsers without SVG
+             icon support; sizes="32x32" stops SVG-capable ones preferring it. -->
+        <link rel="icon" th:href="@{/favicon.ico}" sizes="32x32">
+        <link rel="icon" type="image/svg+xml" th:href="@{/favicon.svg}">
+        <link rel="apple-touch-icon" th:href="@{/apple-touch-icon.png}">
         <link rel="preload" as="font" type="font/woff2" crossorigin
               th:href="@{/fonts/plexsans-var.woff2}">
         <link rel="stylesheet" th:href="@{/style.css}">

@@ -22,6 +22,9 @@ class EstablishmentsImpl implements Establishments {
      */
     private static final int OVERFETCH = 4;
 
+    /** Longer than any real name or address; trigram cost grows with query length. */
+    static final int MAX_QUERY_LENGTH = 100;
+
     private final EstablishmentRepository repository;
 
     EstablishmentsImpl(EstablishmentRepository repository) {
@@ -36,6 +39,9 @@ class EstablishmentsImpl implements Establishments {
     @Override
     public List<EstablishmentView> search(String query, int limit) {
         String trimmed = query == null ? "" : query.trim();
+        if (trimmed.length() > MAX_QUERY_LENGTH) {
+            trimmed = trimmed.substring(0, MAX_QUERY_LENGTH).trim();
+        }
         if (trimmed.isEmpty()) {
             return List.of();
         }

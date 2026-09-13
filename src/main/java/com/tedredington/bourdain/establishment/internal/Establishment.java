@@ -15,10 +15,9 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 
 /**
- * JPA view of the {@code establishment} table. Rows are written by
- * {@link EstablishmentIngest} (bulk SQL upserts) and
- * {@link RelocationService}; this entity is read-only in practice and only
- * exists to back queries.
+ * JPA view of the {@code establishment} table. Rows are only written through
+ * the SQL in {@link EstablishmentRepositoryCustom}; this entity is read-only
+ * in practice and only exists to back queries.
  */
 @Entity
 @Table(name = "establishment")

@@ -2,7 +2,6 @@ package com.tedredington.bourdain.civicdata.internal;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
-import java.time.OffsetDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -16,7 +15,6 @@ import com.tedredington.bourdain.civicdata.SyncSource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationEventPublisher;
-import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.support.TransactionTemplate;
 
@@ -34,24 +32,21 @@ class SyncService implements CivicDataSync {
             DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSS");
 
     private final CivicDataSource source;
-    private final SyncRuns syncRuns;
+    private final SyncRunRepository syncRuns;
     private final SocrataProperties socrataProperties;
     private final SyncProperties syncProperties;
     private final ApplicationEventPublisher events;
     private final TransactionTemplate transaction;
-    private final JdbcClient jdbc;
     private final AtomicBoolean running = new AtomicBoolean(false);
 
-    SyncService(CivicDataSource source, SyncRuns syncRuns, SocrataProperties socrataProperties,
-                SyncProperties syncProperties,
-                ApplicationEventPublisher events, TransactionTemplate transaction, JdbcClient jdbc) {
+    SyncService(CivicDataSource source, SyncRunRepository syncRuns, SocrataProperties socrataProperties,
+                SyncProperties syncProperties, ApplicationEventPublisher events, TransactionTemplate transaction) {
         this.source = source;
         this.syncRuns = syncRuns;
         this.socrataProperties = socrataProperties;
         this.syncProperties = syncProperties;
         this.events = events;
         this.transaction = transaction;
-        this.jdbc = jdbc;
     }
 
     /** Runs both sources; skips silently if a sync is already in flight. */
@@ -74,8 +69,8 @@ class SyncService implements CivicDataSync {
     }
 
     void syncInspections() {
-        long runId = syncRuns.start(SyncSource.INSPECTIONS);
-        String watermark = syncRuns.lastWatermark(SyncSource.INSPECTIONS).orElse(null);
+        var run = syncRuns.start(SyncSource.INSPECTIONS);
+        String watermark = syncRuns.findLastWatermark(SyncSource.INSPECTIONS).orElse(null);
         String queryWatermark = overlappedWatermark(watermark);
         try {
             String lastRowId = null;
@@ -99,10 +94,10 @@ class SyncService implements CivicDataSync {
                 }
                 lastRowId = page.lastRowId();
             }
-            finish(runId, SyncSource.INSPECTIONS, upserted, skipped, maxUpdatedAt);
+            finish(run, SyncSource.INSPECTIONS, upserted, skipped, maxUpdatedAt);
         } catch (RuntimeException e) {
             log.error("Inspection sync failed", e);
-            syncRuns.fail(runId, e.getMessage());
+            syncRuns.fail(run.id(), e.getMessage());
         }
     }
 
@@ -122,15 +117,11 @@ class SyncService implements CivicDataSync {
     }
 
     void syncLicenses() {
-        long runId = syncRuns.start(SyncSource.LICENSES);
+        var run = syncRuns.start(SyncSource.LICENSES);
         try {
             String lastRowId = null;
             int upserted = 0;
             int skipped = 0;
-            // Cutoff for delisting below. Taken from the database clock, not the
-            // JVM's — rows are stamped with the DB's now(), and the two clocks
-            // can disagree (e.g. a VM-hosted Postgres).
-            OffsetDateTime runStart = jdbc.sql("select now()").query(OffsetDateTime.class).single();
             while (true) {
                 var page = source.licensesPage(lastRowId, socrataProperties.pageSize());
                 if (!page.records().isEmpty()) {
@@ -144,32 +135,21 @@ class SyncService implements CivicDataSync {
                 }
                 lastRowId = page.lastRowId();
             }
-            // The source dataset drops lapsed licenses, so anything we didn't
-            // touch this run is no longer listed upstream. Mark rather than
-            // delete: once dropped, this mirror is the only record it existed.
-            int delisted = jdbc.sql("""
-                            update business_license set delisted_at = now()
-                            where updated_at < :runStart and delisted_at is null
-                            """)
-                    .param("runStart", runStart)
-                    .update();
-            if (delisted > 0) {
-                log.info("Marked {} lapsed licenses as delisted", delisted);
-            }
-            finish(runId, SyncSource.LICENSES, upserted, skipped, null);
+            finish(run, SyncSource.LICENSES, upserted, skipped, null);
         } catch (RuntimeException e) {
             log.error("License sync failed", e);
-            syncRuns.fail(runId, e.getMessage());
+            syncRuns.fail(run.id(), e.getMessage());
         }
     }
 
-    private void finish(long runId, SyncSource syncSource, int upserted, int skipped, String watermark) {
+    private void finish(SyncRunRepository.StartedRun run, SyncSource syncSource, int upserted, int skipped,
+                        String watermark) {
         // Completion is recorded and published in one transaction: the Modulith
         // JDBC registry stores the event alongside the run row, then delivers it
         // to module listeners after commit.
         transaction.executeWithoutResult(tx -> {
-            syncRuns.complete(runId, upserted, skipped, watermark);
-            events.publishEvent(new CivicDataSyncCompleted(syncSource, runId, upserted));
+            syncRuns.complete(run.id(), upserted, skipped, watermark);
+            events.publishEvent(new CivicDataSyncCompleted(syncSource, run.id(), run.startedAt(), upserted));
         });
         log.info("{} sync finished: {} rows upserted, {} skipped", syncSource, upserted, skipped);
     }

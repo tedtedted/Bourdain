@@ -17,17 +17,8 @@ jobs:
       contents: read
       packages: write
     steps:
+      # The Dockerfile builds the jar itself, so no JDK or Maven step here.
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-
-      - name: Set up JDK 25 (Temurin)
-        uses: actions/setup-java@03ad4de0992f5dab5e18fcb136590ce7c4a0ac95 # v5
-        with:
-          distribution: temurin
-          java-version: "25"
-          cache: maven
-
-      - name: Build JAR
-        run: ./mvnw -B -ntp package -DskipTests
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3

@@ -12,6 +12,10 @@ import com.tedredington.bourdain.inspection.InspectionResult;
 import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 
 class EstablishmentsImplTest {
 
@@ -59,5 +63,15 @@ class EstablishmentsImplTest {
                 view(5, "PALETERIA AZTECA #2", "3119 W CERMAK RD", LocalDate.of(2026, 9, 1))), 2);
 
         assertThat(results).extracting(EstablishmentView::licenseNumber).containsExactly(1L, 4L);
+    }
+
+    @Test
+    void anOverlongQueryIsCutBeforeItReachesTheDatabase() {
+        EstablishmentRepository repository = mock(EstablishmentRepository.class);
+
+        new EstablishmentsImpl(repository).search("pequods ".repeat(50), 25);
+
+        verify(repository).search(argThat(
+                q -> q.length() <= EstablishmentsImpl.MAX_QUERY_LENGTH), anyInt());
     }
 }

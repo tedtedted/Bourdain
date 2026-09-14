@@ -53,7 +53,7 @@
          live path; this form is the fallback, and Enter yields a shareable URL. -->
     <form class="search" action="/" method="get" role="search">
         <label class="visually-hidden" for="q">Search Chicago food inspections</label>
-        <input type="search" id="q" name="q" th:value="${query}"
+        <input type="search" id="q" name="q" th:value="${query}" maxlength="100"
                placeholder='Search a name, address, or ZIP like "60614"'
                hx-get="/search" hx-trigger="input changed delay:300ms" hx-target="#search-results"
                hx-indicator="#search-results"

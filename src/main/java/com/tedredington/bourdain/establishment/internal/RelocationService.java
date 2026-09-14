@@ -1,6 +1,7 @@
 package com.tedredington.bourdain.establishment.internal;
 
 import java.time.Clock;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -49,8 +50,8 @@ class RelocationService {
             return;
         }
         // The city drops lapsed licenses from the feed, so a license this run
-        // didn't upsert is no longer listed. Matching only considers listed ones.
-        int delisted = licenses.delistNotUpsertedSince(event.startedAt());
+        // didn't list is no longer listed. Matching only considers listed ones.
+        int delisted = licenses.delistNotListedBy(event.runId(), clock.instant());
         log.info("Deriving establishment statuses after license sync ({} licenses delisted)", delisted);
         deriveStatuses();
     }
@@ -64,7 +65,9 @@ class RelocationService {
         Map<Long, Relocation> relocations = new LinkedHashMap<>();
         closed.forEach((establishment, candidates) -> RelocationMatcher.match(establishment, candidates, today)
                 .ifPresent(relocation -> relocations.put(establishment.licenseNumber(), relocation)));
-        establishments.markRelocated(relocations);
+        Instant now = clock.instant();
+        establishments.findAllById(relocations.keySet())
+                .forEach(establishment -> establishment.relocateTo(relocations.get(establishment.getId()), now));
 
         int changes = establishments.recordStatusChanges();
         log.info("Status derivation done: {} closed establishments, {} marked relocated, {} status changes recorded",

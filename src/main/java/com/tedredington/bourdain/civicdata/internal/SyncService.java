@@ -1,5 +1,6 @@
 package com.tedredington.bourdain.civicdata.internal;
 
+import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneOffset;
@@ -39,16 +40,19 @@ class SyncService implements CivicDataSync {
     private final SyncProperties syncProperties;
     private final ApplicationEventPublisher events;
     private final TransactionTemplate transaction;
+    private final Clock clock;
     private final AtomicBoolean running = new AtomicBoolean(false);
 
     SyncService(CivicDataSource source, SyncRunRepository syncRuns, SocrataProperties socrataProperties,
-                SyncProperties syncProperties, ApplicationEventPublisher events, TransactionTemplate transaction) {
+                SyncProperties syncProperties, ApplicationEventPublisher events, TransactionTemplate transaction,
+                Clock clock) {
         this.source = source;
         this.syncRuns = syncRuns;
         this.socrataProperties = socrataProperties;
         this.syncProperties = syncProperties;
         this.events = events;
         this.transaction = transaction;
+        this.clock = clock;
     }
 
     /** Runs both sources; skips silently if a sync is already in flight. */
@@ -59,7 +63,7 @@ class SyncService implements CivicDataSync {
             return;
         }
         try {
-            int abandoned = syncRuns.failAbandoned();
+            int abandoned = failAbandoned();
             if (abandoned > 0) {
                 log.warn("Marked {} abandoned sync runs as failed", abandoned);
             }
@@ -70,8 +74,22 @@ class SyncService implements CivicDataSync {
         }
     }
 
+    /**
+     * Marks leftover RUNNING runs as failed. Safe because only one sync runs at
+     * a time in a single instance; a RUNNING run at sync start means a previous
+     * process died mid-run.
+     */
+    private int failAbandoned() {
+        Integer abandoned = transaction.execute(tx -> {
+            var running = syncRuns.findByStatus(SyncRun.Status.RUNNING);
+            running.forEach(run -> run.fail("abandoned (process restart)", clock.instant()));
+            return running.size();
+        });
+        return abandoned == null ? 0 : abandoned;
+    }
+
     void syncInspections() {
-        var run = syncRuns.start(SyncSource.INSPECTIONS);
+        var run = syncRuns.save(SyncRun.start(SyncSource.INSPECTIONS, clock.instant()));
         String watermark = syncRuns.findLastWatermark(SyncSource.INSPECTIONS).orElse(null);
         String queryWatermark = overlappedWatermark(watermark);
         try {
@@ -99,7 +117,7 @@ class SyncService implements CivicDataSync {
             finish(run, SyncSource.INSPECTIONS, upserted, skipped, maxUpdatedAt);
         } catch (RuntimeException e) {
             log.error("Inspection sync failed", e);
-            syncRuns.fail(run.id(), e.getMessage());
+            fail(run, e);
         }
     }
 
@@ -117,7 +135,7 @@ class SyncService implements CivicDataSync {
     }
 
     void syncLicenses() {
-        var run = syncRuns.start(SyncSource.LICENSES);
+        var run = syncRuns.save(SyncRun.start(SyncSource.LICENSES, clock.instant()));
         try {
             String lastRowId = null;
             int upserted = 0;
@@ -126,7 +144,7 @@ class SyncService implements CivicDataSync {
                 var page = source.licensesPage(lastRowId, socrataProperties.pageSize());
                 if (!page.records().isEmpty()) {
                     transaction.executeWithoutResult(tx ->
-                            events.publishEvent(new LicenseBatchReceived(page.records())));
+                            events.publishEvent(new LicenseBatchReceived(run.id(), page.records())));
                 }
                 upserted += page.records().size();
                 skipped += page.skipped();
@@ -138,7 +156,7 @@ class SyncService implements CivicDataSync {
             finish(run, SyncSource.LICENSES, upserted, skipped, null);
         } catch (RuntimeException e) {
             log.error("License sync failed", e);
-            syncRuns.fail(run.id(), e.getMessage());
+            fail(run, e);
         }
     }
 
@@ -148,9 +166,15 @@ class SyncService implements CivicDataSync {
         // JDBC registry stores the event alongside the run row, then delivers it
         // to module listeners after commit.
         transaction.executeWithoutResult(tx -> {
-            syncRuns.complete(run.id(), upserted, skipped, watermark);
-            events.publishEvent(new CivicDataSyncCompleted(syncSource, run.id(), run.startedAt(), upserted));
+            run.succeed(upserted, skipped, watermark, clock.instant());
+            syncRuns.save(run);
+            events.publishEvent(new CivicDataSyncCompleted(syncSource, run.id(), upserted));
         });
         log.info("{} sync finished: {} rows upserted, {} skipped", syncSource, upserted, skipped);
+    }
+
+    private void fail(SyncRun run, RuntimeException e) {
+        run.fail(e.getMessage(), clock.instant());
+        syncRuns.save(run);
     }
 }

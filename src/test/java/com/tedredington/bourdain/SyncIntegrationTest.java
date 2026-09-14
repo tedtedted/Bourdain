@@ -118,6 +118,10 @@ class SyncIntegrationTest {
         assertThat(hotDogHouse.status()).isEqualTo(EstablishmentStatus.OPEN);
         assertThat(hotDogHouse.latestResult()).isEqualTo(InspectionResult.FAIL);
 
+        assertThat(inspections.history(999).getFirst().violations())
+                .extracting(violation -> violation.code())
+                .containsExactly(3, 38);
+
         var failures = inspections.recentFailures(10);
         assertThat(failures).hasSize(1);
         assertThat(failures.getFirst().dbaName()).isEqualTo("HOT DOG HOUSE");

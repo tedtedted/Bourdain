@@ -5,6 +5,11 @@ spring:
     url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/bourdain}
     username: ${SPRING_DATASOURCE_USERNAME:bourdain}
     password: ${SPRING_DATASOURCE_PASSWORD:bourdain}
+    hikari:
+      data-source-properties:
+        # pgjdbc sends a batch of inserts as one multi-row statement. Set here
+        # rather than on the URL so it survives SPRING_DATASOURCE_URL overrides.
+        reWriteBatchedInserts: true
   threads:
     virtual:
       enabled: true

@@ -13,6 +13,21 @@ spring:
   threads:
     virtual:
       enabled: true
+  web:
+    resources:
+      # Every static file reports the same fixed 1980 Last-Modified (Boot's
+      # reproducible-build default for project.build.outputTimestamp) and no
+      # Cache-Control, so a browser's heuristic freshness window is enormous —
+      # it can keep serving a style.css from months ago and never notice a
+      # deploy changed it. Content-hashing the URL fixes that at the root:
+      # th:href="@{/style.css}" resolves to /style-<hash>.css, so a changed
+      # file is simply a different URL, and the old cached copy is never
+      # requested again. Safe to cache hard once the URL is the guarantee.
+      chain:
+        strategy:
+          content:
+            enabled: true
+            paths: /**
   jpa:
     open-in-view: false
     hibernate:
